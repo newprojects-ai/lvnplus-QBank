@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model templates {
+  id               String    @id @default(uuid())
+  name             String    @db.VarChar(255)
+  description      String?   @db.Text
+  subject_name     String    @db.VarChar(100)
+  topic_name       String    @db.VarChar(100)
+  subtopic_name    String    @db.VarChar(100)
+  difficulty_level Int       @db.TinyInt
+  question_format  String    @db.Text
+  options_format   String    @db.Text
+  solution_format  String    @db.Text
+  example_question String?   @db.Text
+  created_at       DateTime  @default(now())
+  created_by       String    @db.VarChar(255)
+  
+  batches          generation_batches[]
+}
+
+model generation_batches {
+  id               String    @id @default(uuid())
+  template_id      String
+  count            Int
+  difficulty_level Int       @db.TinyInt
+  status           String    @db.VarChar(20)
+  created_at       DateTime  @default(now())
+  completed_at     DateTime?
+  error_message    String?   @db.Text
+  ai_model         String    @default("gpt-4") @db.VarChar(50)
+  ai_temperature   Float     @default(0.7)
+  
+  template         templates @relation(fields: [template_id], references: [id])
+  questions        generated_questions[]
+  export_logs      export_logs[]
+}
+
+model generated_questions {
+  id                  String    @id @default(uuid())
+  batch_id            String
+  subject_name        String    @db.VarChar(100)
+  topic_name          String    @db.VarChar(100)
+  subtopic_name       String    @db.VarChar(100)
+  question_text       String    @db.Text
+  question_text_plain String    @db.Text
+  options             String    @db.Text
+  options_plain       String    @db.Text
+  correct_answer      String    @db.VarChar(255)
+  correct_answer_plain String   @db.VarChar(255)
+  solution            String    @db.Text
+  solution_plain      String    @db.Text
+  difficulty_level    Int       @db.TinyInt
+  created_at          DateTime  @default(now())
+  created_by          String    @db.VarChar(255)
+  status              String    @db.VarChar(20)
+  export_status       String?   @db.VarChar(20)
+  export_error        String?   @db.Text
+  lvnplus_question_id BigInt?
+  
+  batch               generation_batches @relation(fields: [batch_id], references: [id])
+}
+
+model qbank_users {
+  id         String   @id @default(uuid())
+  email      String   @unique @db.VarChar(255)
+  password   String   @db.VarChar(255)
+  first_name String   @db.VarChar(100)
+  last_name  String   @db.VarChar(100)
+  created_at DateTime @default(now())
+}
+
+model export_logs {
+  id                  String    @id @default(uuid())
+  batch_id            String?
+  question_ids        String    @db.Text
+  status              String    @db.VarChar(20)
+  export_time         DateTime  @default(now())
+  rollback_time       DateTime?
+  error_message       String?   @db.Text
+  lvnplus_question_ids String?  @db.Text
+  
+  batch               generation_batches? @relation(fields: [batch_id], references: [id])
+}
+
+model ai_config {
+  id           String   @id @default(uuid())
+  provider     String   @db.VarChar(20)
+  model        String   @db.VarChar(50)
+  api_key      String   @db.VarChar(255)
+  max_tokens   Int      @default(1000)
+  temperature  Float    @default(0.7)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  is_default   Boolean  @default(false)
+}
