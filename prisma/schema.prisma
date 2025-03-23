@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "mysql" // MariaDB uses the mysql provider in Prisma
   url      = env("DATABASE_URL")
+  relationMode = "prisma" // Recommended for better performance with MariaDB
 }
 
 model templates {
