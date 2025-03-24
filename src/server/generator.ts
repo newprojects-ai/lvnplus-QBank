@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import OpenAI from 'openai';
-import { AuthRequest } from './middleware';
+import { AuthRequest } from './middleware.js';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 const prisma = new PrismaClient();
 
@@ -86,7 +87,7 @@ async function generateQuestionsAsync(batchId: string, template: any, userId: st
       try {
         const messages = [
           {
-            role: 'system',
+            role: 'system' as const,
             content: `You are a question generator for ${template.subject_name}. 
                        Generate a question following this format:
                        ${template.question_format}
@@ -98,12 +99,12 @@ async function generateQuestionsAsync(batchId: string, template: any, userId: st
                        ${template.solution_format}`,
           },
           {
-            role: 'user',
+            role: 'user' as const,
             content: `Generate a ${template.subject_name} question about ${template.topic_name}, 
                        specifically about ${template.subtopic_name}, 
                        at difficulty level ${batch.difficulty_level}/5.`,
           },
-        ];
+        ] satisfies ChatCompletionMessageParam[];
 
         let response;
         if (aiConfig.provider === 'openai') {

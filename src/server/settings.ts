@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import OpenAI from 'openai';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 const prisma = new PrismaClient();
 
@@ -105,8 +106,11 @@ export async function testAIConfig(req: Request, res: Response) {
     }
 
     const messages = [
-      { role: 'user', content: 'Respond with "Test successful!" if you can read this message.' }
-    ];
+      { 
+        role: 'user' as const, 
+        content: 'Respond with "Test successful!" if you can read this message.' 
+      } satisfies ChatCompletionMessageParam
+    ] satisfies ChatCompletionMessageParam[];
 
     let response;
     if (config.provider === 'openai') {

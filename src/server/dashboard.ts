@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function getDashboardStats(req: Request, res: Response) {
+export async function getDashboardStats(_req: Request, res: Response) {
   try {
     const [totalQuestions, approvedQuestions, pendingQuestions, failedBatches] =
       await Promise.all([
