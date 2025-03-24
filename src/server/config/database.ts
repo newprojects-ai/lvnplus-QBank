@@ -1,17 +1,13 @@
 import { z } from 'zod';
 
-const dbConfigSchema = z.object({
-  QBANK_DB_HOST: z.string(),
-  QBANK_DB_USER: z.string(),
-  QBANK_DB_PASSWORD: z.string(),
-  QBANK_DB_NAME: z.string(),
-  QBANK_DB_PORT: z.string().transform(Number).default('3306'),
+const envSchema = z.object({
+  DATABASE_URL: z.string(),
 });
 
 export function getQBankUrl(): string {
-  const config = dbConfigSchema.parse(process.env);
-  return `mysql://${config.QBANK_DB_USER}:${config.QBANK_DB_PASSWORD}@${config.QBANK_DB_HOST}:${config.QBANK_DB_PORT}/${config.QBANK_DB_NAME}`;
+  const config = envSchema.parse(process.env);
+  return config.DATABASE_URL;
 }
 
 // Add this to process.env for Prisma
-process.env.QBANK_DB_URL = getQBankUrl();
+process.env.DATABASE_URL = getQBankUrl();

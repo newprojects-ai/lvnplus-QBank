@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "mysql" // MariaDB uses the mysql provider in Prisma
-  url      = env("QBANK_DB_URL")
+  url      = env("DATABASE_URL")
 }
 
 model subjects {
