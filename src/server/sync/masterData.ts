@@ -39,7 +39,7 @@ interface LVNPLUSData {
     characteristics: string;
     focus_area: string;
     steps_required: string | null;
-    active: boolean;
+    active: number;
   }>;
 }
 
@@ -179,10 +179,15 @@ export class MasterDataSync {
         // Sync difficulty levels
         console.log('Syncing difficulty levels...');
         for (const level of lvnplusData.difficultyLevels) {
+          const normalizedLevel = {
+            ...level,
+            active: Boolean(level.active), // Convert 1/0 to true/false
+          };
+          
           await tx.difficulty_levels.upsert({
             where: { level_id: level.level_id },
-            create: level,
-            update: level,
+            create: normalizedLevel,
+            update: normalizedLevel,
           });
         }
         console.log(`Synced ${lvnplusData.difficultyLevels.length} difficulty levels`);
