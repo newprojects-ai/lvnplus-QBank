@@ -9,17 +9,14 @@
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
 
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    
-    /* Additional Settings */
-    "resolveJsonModule": true
+    "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts"]
+  "include": ["vite.config.ts", "src/server/**/*.ts"]
 }

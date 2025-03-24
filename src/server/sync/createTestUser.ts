@@ -1,10 +1,12 @@
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function createTestUser() {
   try {
+    console.log('Creating test user...');
+    
     const hashedPassword = await bcrypt.hash('test123', 10);
     
     const user = await prisma.qbank_users.upsert({
@@ -30,7 +32,8 @@ async function createTestUser() {
     console.log('Password: test123');
 
   } catch (error) {
-    console.error('Failed to create test user:', error);
+    console.error('Failed to create test user:', error instanceof Error ? error.message : error);
+    throw error;
   } finally {
     await prisma.$disconnect();
   }
