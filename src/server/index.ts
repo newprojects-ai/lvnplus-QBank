@@ -34,13 +34,21 @@ app.use(cors());
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
+// Initialize express
+const app = express();
+
+// Middleware
+app.use(express.json());
+app.use(cors());
+
 async function checkDatabaseConnection() {
   try {
     await prisma.$connect();
     console.log('Successfully connected to MariaDB');
   } catch (error) {
     console.error('Database connection error:', error);
-    process.exit(1);
+    // Don't exit, just log the error
+    console.error('Please ensure MariaDB is running and credentials are correct');
   }
 }
 
