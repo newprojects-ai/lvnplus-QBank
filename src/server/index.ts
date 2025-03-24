@@ -1,35 +1,34 @@
-import * as express from 'express';
-import * as cors from 'cors';
-import { login } from './auth.js';
-import { authenticate } from './middleware.js';
+import express from 'express';
+import cors from 'cors';
+import { login } from './auth';
+import { authenticate } from './middleware';
 import {
   getTemplates,
   createTemplate,
   updateTemplate,
   deleteTemplate,
-} from './templates.js';
-import { generateQuestions } from './generator.js';
+} from './templates';
+import { generateQuestions } from './generator';
 import {
   approveQuestion,
   updateQuestion,
   deleteQuestion,
-} from './questions.js';
-import { getDashboardStats } from './dashboard.js';
-import { exportQuestions } from './export.js';
+} from './questions';
+import { getDashboardStats } from './dashboard';
+import { exportQuestions } from './export';
 import {
   getAIConfigs,
   createAIConfig,
   updateAIConfig,
   deleteAIConfig, 
   testAIConfig
-} from './settings.js';
+}
 
 // Initialize express
-const app = express.default();
+const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors.default());
 
 // Database connection check
 import { PrismaClient } from '@prisma/client';
