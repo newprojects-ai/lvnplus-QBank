@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import { Configuration, OpenAIApi } from 'openai';
+import OpenAI from 'openai';
 import { AuthRequest } from './middleware';
 
 const prisma = new PrismaClient();
@@ -57,14 +57,12 @@ async function generateQuestionsAsync(batchId: string, template: any, userId: st
 
     let ai;
     if (aiConfig.provider === 'openai') {
-      ai = new OpenAIApi(
-        new Configuration({ apiKey: aiConfig.api_key })
-      );
+      ai = new OpenAI({ apiKey: aiConfig.api_key });
     } else {
       // Mock DeepSeek implementation until API is available
       ai = {
         chat: {
-          complete: async ({ messages, temperature }) => {
+          complete: async ({ messages }: { messages: any[] }) => {
             // Simulate API response
             return {
               output: `Generated question based on: ${messages[messages.length - 1].content}\n\n` +

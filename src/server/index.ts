@@ -1,5 +1,5 @@
-import express from 'express';
-import cors from 'cors';
+import * as express from 'express';
+import * as cors from 'cors';
 import { login } from './auth';
 import { authenticate } from './middleware';
 import {
@@ -20,11 +20,12 @@ import {
   getAIConfigs,
   createAIConfig,
   updateAIConfig,
-  deleteAIConfig,
+  deleteAIConfig, 
+  testAIConfig
 } from './settings';
 
 // Initialize express
-const app = express();
+const app = express.default();
 
 // Middleware
 app.use(express.json());
