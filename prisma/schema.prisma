@@ -61,7 +61,7 @@ model templates {
   subject_id       Int
   topic_id         Int
   subtopic_id      Int
-  difficulty_value Int       @db.TinyInt @map("difficulty_value") @db.Comment("Numeric value representing difficulty (0-5)")
+  difficulty_value Int       @db.TinyInt @db.Comment("Numeric value representing difficulty (0-5)")
   level_id         Int
   question_format  String    @db.Text
   options_format   String    @db.Text
@@ -73,7 +73,7 @@ model templates {
   subject          subjects  @relation(fields: [subject_id], references: [subject_id])
   topic            topics    @relation(fields: [topic_id], references: [topic_id])
   subtopic         subtopics @relation(fields: [subtopic_id], references: [subtopic_id])
-  difficulty_level difficulty_levels @relation(fields: [level_id], references: [level_id]) @map("difficulty_level")
+  difficulty_level difficulty_levels @relation(fields: [level_id], references: [level_id])
   batches          generation_batches[]
 
   @@index([subject_id])
