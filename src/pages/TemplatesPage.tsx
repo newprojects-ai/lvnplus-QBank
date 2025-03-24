@@ -347,7 +347,7 @@ export function TemplatesPage() {
               </div>
 
               <div className="grid grid-cols-3 gap-6">
-                <div className="space-y-4">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Subject
                   </label>
@@ -364,7 +364,7 @@ export function TemplatesPage() {
                         level_id: 0,
                       });
                     }}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border rounded-lg bg-white"
                     required
                   >
                     <option value="">Select a subject</option>
@@ -374,35 +374,6 @@ export function TemplatesPage() {
                       </option>
                     ))}
                   </select>
-
-                  {selectedSubject && difficultyLevels && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Difficulty Level
-                      </label>
-                      <select
-                        value={formData.level_id || ''}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            level_id: parseInt(e.target.value),
-                            difficulty_level: difficultyLevels.find(
-                              (l) => l.level_id === parseInt(e.target.value)
-                            )?.level_value || 2,
-                          })
-                        }
-                        className="w-full px-3 py-2 border rounded-lg"
-                        required
-                      >
-                        <option value="">Select difficulty level</option>
-                        {difficultyLevels.map((level) => (
-                          <option key={level.level_id} value={level.level_id}>
-                            {level.level_name} (Level {level.level_value})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
                 </div>
 
                 <div>
@@ -420,7 +391,7 @@ export function TemplatesPage() {
                         subtopic_id: 0,
                       });
                     }}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border rounded-lg bg-white"
                     required
                     disabled={!selectedSubject}
                   >
@@ -445,7 +416,7 @@ export function TemplatesPage() {
                         subtopic_id: parseInt(e.target.value),
                       })
                     }
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border rounded-lg bg-white"
                     required
                     disabled={!selectedTopic}
                   >
@@ -458,6 +429,35 @@ export function TemplatesPage() {
                   </select>
                 </div>
               </div>
+
+              {selectedSubject && difficultyLevels && (
+                <div className="mt-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Difficulty Level
+                  </label>
+                  <select
+                    value={formData.level_id || ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        level_id: parseInt(e.target.value),
+                        difficulty_level: difficultyLevels.find(
+                          (l) => l.level_id === parseInt(e.target.value)
+                        )?.level_value || 2,
+                      })
+                    }
+                    className="w-full px-3 py-2 border rounded-lg bg-white"
+                    required
+                  >
+                    <option value="">Select difficulty level</option>
+                    {difficultyLevels.map((level) => (
+                      <option key={level.level_id} value={level.level_id}>
+                        {level.level_name} (Level {level.level_value})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
