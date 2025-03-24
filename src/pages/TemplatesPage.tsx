@@ -109,7 +109,11 @@ export function TemplatesPage() {
   const { data: subjects } = useQuery<Subject[]>({
     queryKey: ['subjects'],
     queryFn: async () => {
-      const response = await fetch('/api/master-data/subjects');
+      const response = await fetch('/api/master-data/subjects', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch subjects');
       return response.json();
     },
@@ -119,7 +123,11 @@ export function TemplatesPage() {
     queryKey: ['topics', selectedSubject],
     enabled: !!selectedSubject,
     queryFn: async () => {
-      const response = await fetch(`/api/master-data/topics/${selectedSubject}`);
+      const response = await fetch(`/api/master-data/topics/${selectedSubject}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch topics');
       return response.json();
     },
@@ -129,7 +137,11 @@ export function TemplatesPage() {
     queryKey: ['subtopics', selectedTopic],
     enabled: !!selectedTopic,
     queryFn: async () => {
-      const response = await fetch(`/api/master-data/subtopics/${selectedTopic}`);
+      const response = await fetch(`/api/master-data/subtopics/${selectedTopic}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch subtopics');
       return response.json();
     },
@@ -139,7 +151,11 @@ export function TemplatesPage() {
     queryKey: ['difficulty-levels', selectedSubject],
     enabled: !!selectedSubject,
     queryFn: async () => {
-      const response = await fetch(`/api/master-data/difficulty-levels/${selectedSubject}`);
+      const response = await fetch(`/api/master-data/difficulty-levels/${selectedSubject}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch difficulty levels');
       return response.json();
     },
@@ -151,7 +167,10 @@ export function TemplatesPage() {
     try {
       const response = await fetch('/api/templates', {
         method: editingTemplate ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify({
           ...formData,
           id: editingTemplate?.id,
@@ -194,6 +213,9 @@ export function TemplatesPage() {
     try {
       const response = await fetch(`/api/templates/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
 
       if (!response.ok) {
