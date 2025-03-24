@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import bcryptjs from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -7,7 +7,7 @@ async function createTestUser() {
   try {
     console.log('Creating test user...');
     
-    const hashedPassword = await bcrypt.hash('test123', 10);
+    const hashedPassword = await bcryptjs.hash('test123', 10);
     
     const user = await prisma.qbank_users.upsert({
       where: { email: 'test@example.com' },
