@@ -100,7 +100,11 @@ export function TemplatesPage() {
   const { data: templates, refetch: refetchTemplates, isLoading: isLoadingTemplates, error: templatesError } = useQuery<Template[]>({
     queryKey: ['templates'],
     queryFn: async () => {
-      const response = await fetch('/api/templates');
+      const response = await fetch('/api/templates', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch templates');
       return response.json();
     },
@@ -132,9 +136,12 @@ export function TemplatesPage() {
     queryKey: ['topics', selectedSubject],
     enabled: !!selectedSubject,
     queryFn: async () => {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found');
+
       const response = await fetch(`/api/master-data/topics/${selectedSubject}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
       if (!response.ok) throw new Error('Failed to fetch topics');
@@ -146,9 +153,12 @@ export function TemplatesPage() {
     queryKey: ['subtopics', selectedTopic],
     enabled: !!selectedTopic,
     queryFn: async () => {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found');
+
       const response = await fetch(`/api/master-data/subtopics/${selectedTopic}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
       if (!response.ok) throw new Error('Failed to fetch subtopics');
@@ -160,9 +170,12 @@ export function TemplatesPage() {
     queryKey: ['difficulty-levels', selectedSubject],
     enabled: !!selectedSubject,
     queryFn: async () => {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found');
+
       const response = await fetch(`/api/master-data/difficulty-levels/${selectedSubject}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
       if (!response.ok) throw new Error('Failed to fetch difficulty levels');
@@ -173,12 +186,18 @@ export function TemplatesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('No authentication token found');
+      return;
+    }
+
     try {
       const response = await fetch('/api/templates', {
         method: editingTemplate ? 'PUT' : 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           ...formData,
@@ -219,11 +238,17 @@ export function TemplatesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this template?')) return;
 
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('No authentication token found');
+      return;
+    }
+
     try {
       const response = await fetch(`/api/templates/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
 
