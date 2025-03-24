@@ -1,51 +1,148 @@
 import React from 'react';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 
 interface Template {
   id: string;
   name: string;
   description: string;
-  subject_name: string;
-  topic_name: string;
-  subtopic_name: string;
+  subject_id: number;
+  topic_id: number;
+  subtopic_id: number;
   difficulty_level: number;
+  level_id: number;
   question_format: string;
   options_format: string;
   solution_format: string;
   example_question?: string;
   created_at: string;
   created_by: string;
+  subject: {
+    subject_id: number;
+    subject_name: string;
+  };
+  topic: {
+    topic_id: number;
+    topic_name: string;
+  };
+  subtopic: {
+    subtopic_id: number;
+    subtopic_name: string;
+  };
+  difficulty_level: {
+    level_id: number;
+    level_name: string;
+    level_value: number;
+    purpose: string;
+    characteristics: string;
+    focus_area: string;
+  };
 }
 
 interface TemplateFormData {
   name: string;
   description: string;
-  subject_name: string;
-  topic_name: string;
-  subtopic_name: string;
+  subject_id: number;
+  topic_id: number;
+  subtopic_id: number;
   difficulty_level: number;
+  level_id: number;
   question_format: string;
   options_format: string[];
   solution_format: string;
   example_question?: string;
 }
 
+interface Subject {
+  subject_id: number;
+  subject_name: string;
+}
+
+interface Topic {
+  topic_id: number;
+  topic_name: string;
+}
+
+interface Subtopic {
+  subtopic_id: number;
+  subtopic_name: string;
+}
+
+interface DifficultyLevel {
+  level_id: number;
+  level_name: string;
+  level_value: number;
+  purpose: string;
+  characteristics: string;
+  focus_area: string;
+}
+
 export function TemplatesPage() {
-  const [templates, setTemplates] = useState<Template[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<number | null>(null);
   const [formData, setFormData] = useState<TemplateFormData>({
     name: '',
     description: '',
-    subject_name: '',
-    topic_name: '',
-    subtopic_name: '',
+    subject_id: 0,
+    topic_id: 0,
+    subtopic_id: 0,
     difficulty_level: 2,
+    level_id: 0,
     question_format: '',
     options_format: ['', '', '', ''],
     solution_format: '',
     example_question: '',
+  });
+
+  const { data: templates } = useQuery<Template[]>({
+    queryKey: ['templates'],
+    queryFn: async () => {
+      const response = await fetch('/api/templates');
+      if (!response.ok) throw new Error('Failed to fetch templates');
+      return response.json();
+    },
+  });
+
+  const { data: subjects } = useQuery<Subject[]>({
+    queryKey: ['subjects'],
+    queryFn: async () => {
+      const response = await fetch('/api/master-data/subjects');
+      if (!response.ok) throw new Error('Failed to fetch subjects');
+      return response.json();
+    },
+  });
+
+  const { data: topics } = useQuery<Topic[]>({
+    queryKey: ['topics', selectedSubject],
+    enabled: !!selectedSubject,
+    queryFn: async () => {
+      const response = await fetch(`/api/master-data/topics/${selectedSubject}`);
+      if (!response.ok) throw new Error('Failed to fetch topics');
+      return response.json();
+    },
+  });
+
+  const { data: subtopics } = useQuery<Subtopic[]>({
+    queryKey: ['subtopics', selectedTopic],
+    enabled: !!selectedTopic,
+    queryFn: async () => {
+      const response = await fetch(`/api/master-data/subtopics/${selectedTopic}`);
+      if (!response.ok) throw new Error('Failed to fetch subtopics');
+      return response.json();
+    },
+  });
+
+  const { data: difficultyLevels } = useQuery<DifficultyLevel[]>({
+    queryKey: ['difficulty-levels', selectedSubject],
+    enabled: !!selectedSubject,
+    queryFn: async () => {
+      const response = await fetch(`/api/master-data/difficulty-levels/${selectedSubject}`);
+      if (!response.ok) throw new Error('Failed to fetch difficulty levels');
+      return response.json();
+    },
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -164,15 +261,15 @@ export function TemplatesPage() {
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div>
                 <p className="text-sm font-medium text-gray-500">Subject</p>
-                <p className="text-gray-900">{template.subject_name}</p>
+                <p className="text-gray-900">{template.subject.subject_name}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Topic</p>
-                <p className="text-gray-900">{template.topic_name}</p>
+                <p className="text-gray-900">{template.topic.topic_name}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Subtopic</p>
-                <p className="text-gray-900">{template.subtopic_name}</p>
+                <p className="text-gray-900">{template.subtopic.subtopic_name}</p>
               </div>
             </div>
 
@@ -238,57 +335,116 @@ export function TemplatesPage() {
               </div>
 
               <div className="grid grid-cols-3 gap-6">
-                <div>
+                <div className="space-y-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Subject
                   </label>
-                  <input
-                    type="text"
-                    value={formData.subject_name}
-                    onChange={(e) => setFormData({ ...formData, subject_name: e.target.value })}
+                  <select
+                    value={formData.subject_id || ''}
+                    onChange={(e) => {
+                      const subjectId = parseInt(e.target.value);
+                      setSelectedSubject(subjectId);
+                      setFormData({
+                        ...formData,
+                        subject_id: subjectId,
+                        topic_id: 0,
+                        subtopic_id: 0,
+                        level_id: 0,
+                      });
+                    }}
                     className="w-full px-3 py-2 border rounded-lg"
                     required
-                  />
+                  >
+                    <option value="">Select a subject</option>
+                    {subjects?.map((subject) => (
+                      <option key={subject.subject_id} value={subject.subject_id}>
+                        {subject.subject_name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {selectedSubject && difficultyLevels && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Difficulty Level
+                      </label>
+                      <select
+                        value={formData.level_id || ''}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            level_id: parseInt(e.target.value),
+                            difficulty_level: difficultyLevels.find(
+                              (l) => l.level_id === parseInt(e.target.value)
+                            )?.level_value || 2,
+                          })
+                        }
+                        className="w-full px-3 py-2 border rounded-lg"
+                        required
+                      >
+                        <option value="">Select difficulty level</option>
+                        {difficultyLevels.map((level) => (
+                          <option key={level.level_id} value={level.level_id}>
+                            {level.level_name} (Level {level.level_value})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Topic
                   </label>
-                  <input
-                    type="text"
-                    value={formData.topic_name}
-                    onChange={(e) => setFormData({ ...formData, topic_name: e.target.value })}
+                  <select
+                    value={formData.topic_id || ''}
+                    onChange={(e) => {
+                      const topicId = parseInt(e.target.value);
+                      setSelectedTopic(topicId);
+                      setFormData({
+                        ...formData,
+                        topic_id: topicId,
+                        subtopic_id: 0,
+                      });
+                    }}
                     className="w-full px-3 py-2 border rounded-lg"
                     required
-                  />
+                    disabled={!selectedSubject}
+                  >
+                    <option value="">Select a topic</option>
+                    {topics?.map((topic) => (
+                      <option key={topic.topic_id} value={topic.topic_id}>
+                        {topic.topic_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Subtopic
                   </label>
-                  <input
-                    type="text"
-                    value={formData.subtopic_name}
-                    onChange={(e) => setFormData({ ...formData, subtopic_name: e.target.value })}
+                  <select
+                    value={formData.subtopic_id || ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        subtopic_id: parseInt(e.target.value),
+                      })
+                    }
                     className="w-full px-3 py-2 border rounded-lg"
                     required
-                  />
+                    disabled={!selectedTopic}
+                  >
+                    <option value="">Select a subtopic</option>
+                    {subtopics?.map((subtopic) => (
+                      <option key={subtopic.subtopic_id} value={subtopic.subtopic_id}>
+                        {subtopic.subtopic_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Difficulty Level (0-5)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="5"
-                  value={formData.difficulty_level}
-                  onChange={(e) => setFormData({ ...formData, difficulty_level: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  required
-                />
               </div>
 
               <div>

@@ -84,7 +84,7 @@ async function generateQuestionsAsync(batchId: string, template: any, userId: st
         const messages = [
           {
             role: 'system' as const,
-            content: `You are a question generator for ${template.subject_name}. 
+            content: `You are a question generator for ${template.subject.subject_name}. 
                        Generate a question following this format:
                        ${template.question_format}
                        
@@ -96,8 +96,8 @@ async function generateQuestionsAsync(batchId: string, template: any, userId: st
           },
           {
             role: 'user' as const,
-            content: `Generate a ${template.subject_name} question about ${template.topic_name}, 
-                       specifically about ${template.subtopic_name}, 
+            content: `Generate a ${template.subject.subject_name} question about ${template.topic.topic_name}, 
+                       specifically about ${template.subtopic.subtopic_name}, 
                        at difficulty level ${batch.difficulty_level}/5.`,
           },
         ] satisfies ChatCompletionMessageParam[];
@@ -122,9 +122,9 @@ async function generateQuestionsAsync(batchId: string, template: any, userId: st
         await prisma.generated_questions.create({
           data: {
             batch_id: batchId,
-            subject_name: template.subject_name,
-            topic_name: template.topic_name,
-            subtopic_name: template.subtopic_name,
+            subject_name: template.subject.subject_name,
+            topic_name: template.topic.topic_name,
+            subtopic_name: template.subtopic.subtopic_name,
             question_text: question,
             question_text_plain: question,
             options: JSON.stringify(options.split('\n')),

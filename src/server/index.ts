@@ -1,7 +1,15 @@
 import express from 'express';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
+import { specs } from './swagger';
 import { login } from './auth';
 import { authenticate } from './middleware';
+import {
+  getSubjects,
+  getTopics,
+  getSubtopics,
+  getDifficultyLevels,
+} from './routes/masterData';
 import {
   getTemplates,
   createTemplate,
@@ -31,6 +39,9 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+
 // Database connection check
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
@@ -51,6 +62,12 @@ app.post('/api/auth/login', login);
 
 // Protected routes
 app.use('/api', authenticate);
+
+// Master Data routes
+app.get('/api/master-data/subjects', getSubjects);
+app.get('/api/master-data/topics/:subjectId', getTopics);
+app.get('/api/master-data/subtopics/:topicId', getSubtopics);
+app.get('/api/master-data/difficulty-levels/:subjectId', getDifficultyLevels);
 
 // Templates
 app.get('/api/templates', getTemplates);

@@ -8,10 +8,11 @@ const prisma = new PrismaClient();
 const templateSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
-  subject_name: z.string().min(1),
-  topic_name: z.string().min(1),
-  subtopic_name: z.string().min(1),
+  subject_id: z.number().int().positive(),
+  topic_id: z.number().int().positive(),
+  subtopic_id: z.number().int().positive(),
   difficulty_level: z.number().min(0).max(5),
+  level_id: z.number().int().positive(),
   question_format: z.string().min(1),
   options_format: z.string(),
   solution_format: z.string().min(1),
@@ -21,6 +22,12 @@ const templateSchema = z.object({
 export async function getTemplates(_req: Request, res: Response) {
   try {
     const templates = await prisma.templates.findMany({
+      include: {
+        subject: true,
+        topic: true,
+        subtopic: true,
+        difficulty_level: true,
+      },
       orderBy: { created_at: 'desc' },
     });
     res.json(templates);

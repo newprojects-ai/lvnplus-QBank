@@ -9,7 +9,8 @@
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync:master-data": "tsx src/server/sync/index.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.10.2",
@@ -20,11 +21,14 @@
     "jsonwebtoken": "^9.0.2",
     "katex": "^0.16.9",
     "lucide-react": "^0.344.0",
+    "mysql2": "^3.9.2",
     "openai": "^4.28.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.22.2",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
@@ -35,6 +39,8 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/katex": "^0.16.7",
     "@types/node": "^20.11.24",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.6",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
