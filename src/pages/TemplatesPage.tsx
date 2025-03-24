@@ -1,7 +1,9 @@
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface Template {
   id: string;
@@ -79,10 +81,21 @@ interface DifficultyLevel {
 }
 
 export function TemplatesPage() {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<number | null>(null);
+
+  // Check for authentication
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please log in to continue');
+      navigate('/login');
+    }
+  }, [navigate]);
+
   const [formData, setFormData] = useState<TemplateFormData>({
     name: '',
     description: '',
@@ -100,12 +113,26 @@ export function TemplatesPage() {
   const { data: templates, refetch: refetchTemplates, isLoading: isLoadingTemplates, error: templatesError } = useQuery<Template[]>({
     queryKey: ['templates'],
     queryFn: async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
       const response = await fetch('/api/templates', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
-      if (!response.ok) throw new Error('Failed to fetch templates');
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          navigate('/login');
+          throw new Error('Session expired. Please log in again.');
+        }
+        throw new Error('Failed to fetch templates');
+      }
+
       return response.json();
     },
   });
@@ -113,23 +140,31 @@ export function TemplatesPage() {
   const { data: subjects, isLoading: isLoadingSubjects, error: subjectsError } = useQuery<Subject[]>({
     queryKey: ['subjects'],
     queryFn: async () => {
-      console.log('Fetching subjects...');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
       const response = await fetch('/api/master-data/subjects', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
       
       if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          navigate('/login');
+          throw new Error('Session expired. Please log in again.');
+        }
         const error = await response.json();
         console.error('Failed to fetch subjects:', error);
         throw new Error(`Failed to fetch subjects: ${error.message || response.statusText}`);
       }
 
-      const data = await response.json();
-      console.log('Subjects fetched successfully:', data);
-      return data;
+      return response.json();
     },
+    retry: false
   });
 
   const { data: topics } = useQuery<Topic[]>({

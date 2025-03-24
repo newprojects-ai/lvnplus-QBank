@@ -9,8 +9,9 @@
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "sync:master-data": "tsx src/server/sync/index.ts"
+    "preview": "vite preview", 
+    "sync:master-data": "tsx src/server/sync/index.ts",
+    "create:test-user": "tsx src/server/sync/createTestUser.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.10.2",
