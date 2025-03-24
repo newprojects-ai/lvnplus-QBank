@@ -1,8 +1,12 @@
+import * as dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
-import './config/database';
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './swagger';
+
+// Load environment variables
+dotenv.config();
+
 import { login } from './auth';
 import { authenticate } from './middleware';
 import {
