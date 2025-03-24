@@ -2,12 +2,10 @@ import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { OpenAI } from 'openai';
+import { DeepSeekAPI } from './mock/deepseek';
 import { AuthRequest } from './middleware';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-
-interface MockAIClient {
-  mockResponse: (messages: ChatCompletionMessageParam[]) => Promise<string>;
-}
+import type { MockAIClient } from './types';
 
 type AIClient = OpenAI | MockAIClient;
 
@@ -70,15 +68,7 @@ async function generateQuestionsAsync(batchId: string, template: any, userId: st
     if (aiConfig.provider === 'openai') {
       ai = new OpenAI({ apiKey: aiConfig.api_key });
     } else {
-      // Mock DeepSeek implementation until API is available
-      ai = {
-        mockResponse: async (messages) => {
-          // Simulate API response
-          return `Generated question based on: ${messages[messages.length - 1].content}\n\n` +
-                 `Option A: First option\nOption B: Second option\n\n` +
-                 `Detailed solution here`;
-        }
-      };
+      ai = new DeepSeekAPI(aiConfig.api_key);
     }
 
     const batch = await prisma.generation_batches.findUnique({

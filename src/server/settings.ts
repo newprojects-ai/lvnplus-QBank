@@ -2,11 +2,9 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import OpenAI from 'openai';
+import { DeepSeekAPI } from './mock/deepseek';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-
-interface MockAIClient {
-  mockResponse: (messages: ChatCompletionMessageParam[]) => Promise<string>;
-}
+import type { MockAIClient } from './types';
 
 type AIClient = OpenAI | MockAIClient;
 
@@ -105,11 +103,7 @@ export async function testAIConfig(req: Request, res: Response) {
     if (config.provider === 'openai') {
       ai = new OpenAI({ apiKey: config.api_key });
     } else {
-      ai = {
-        mockResponse: async (_messages: ChatCompletionMessageParam[]) => {
-          return "Test successful!";
-        }
-      };
+      ai = new DeepSeekAPI(config.api_key);
     }
 
     const messages = [
