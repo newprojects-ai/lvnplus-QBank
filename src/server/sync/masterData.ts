@@ -53,6 +53,7 @@ export class MasterDataSync {
 
   async connect() {
     try {
+      console.log('Attempting to connect to LVNPLUS database...');
       const env = envSchema.parse(process.env);
 
       this.lvnplusConnection = await mysql.createConnection({
@@ -80,24 +81,33 @@ export class MasterDataSync {
 
   private async fetchLVNPLUSData(): Promise<LVNPLUSData> {
     if (!this.lvnplusConnection) {
+      console.error('Connection to LVNPLUS database not established');
       throw new Error('Not connected to LVNPLUS database');
     }
 
+    console.log('Fetching subjects from LVNPLUS...');
     const [subjects] = await this.lvnplusConnection.query(
       'SELECT subject_id, subject_name, description FROM subjects'
     );
+    console.log(`Found ${(subjects as any[]).length} subjects`);
 
+    console.log('Fetching topics from LVNPLUS...');
     const [topics] = await this.lvnplusConnection.query(
       'SELECT topic_id, subject_id, topic_name, description FROM topics'
     );
+    console.log(`Found ${(topics as any[]).length} topics`);
 
+    console.log('Fetching subtopics from LVNPLUS...');
     const [subtopics] = await this.lvnplusConnection.query(
       'SELECT subtopic_id, topic_id, subtopic_name, description FROM subtopics'
     );
+    console.log(`Found ${(subtopics as any[]).length} subtopics`);
 
+    console.log('Fetching difficulty levels from LVNPLUS...');
     const [difficultyLevels] = await this.lvnplusConnection.query(
       'SELECT level_id, level_name, level_value, subject_id, purpose, characteristics, focus_area, steps_required, active FROM difficulty_levels'
     );
+    console.log(`Found ${(difficultyLevels as any[]).length} difficulty levels`);
 
     return {
       subjects: subjects as LVNPLUSData['subjects'],
@@ -110,12 +120,15 @@ export class MasterDataSync {
   async syncMasterData() {
     try {
       console.log('Starting master data synchronization...');
+      console.log('Fetching data from LVNPLUS...');
       
       const lvnplusData = await this.fetchLVNPLUSData();
 
       // Start a transaction
+      console.log('Starting database transaction...');
       await this.qbankPrisma.$transaction(async (tx) => {
         // Sync subjects
+        console.log('Syncing subjects...');
         for (const subject of lvnplusData.subjects) {
           await tx.subjects.upsert({
             where: { subject_id: subject.subject_id },
@@ -123,8 +136,10 @@ export class MasterDataSync {
             update: subject,
           });
         }
+        console.log(`Synced ${lvnplusData.subjects.length} subjects`);
 
         // Sync topics
+        console.log('Syncing topics...');
         for (const topic of lvnplusData.topics) {
           await tx.topics.upsert({
             where: { topic_id: topic.topic_id },
@@ -132,8 +147,10 @@ export class MasterDataSync {
             update: topic,
           });
         }
+        console.log(`Synced ${lvnplusData.topics.length} topics`);
 
         // Sync subtopics
+        console.log('Syncing subtopics...');
         for (const subtopic of lvnplusData.subtopics) {
           await tx.subtopics.upsert({
             where: { subtopic_id: subtopic.subtopic_id },
@@ -141,8 +158,10 @@ export class MasterDataSync {
             update: subtopic,
           });
         }
+        console.log(`Synced ${lvnplusData.subtopics.length} subtopics`);
 
         // Sync difficulty levels
+        console.log('Syncing difficulty levels...');
         for (const level of lvnplusData.difficultyLevels) {
           await tx.difficulty_levels.upsert({
             where: { level_id: level.level_id },
@@ -150,11 +169,16 @@ export class MasterDataSync {
             update: level,
           });
         }
+        console.log(`Synced ${lvnplusData.difficultyLevels.length} difficulty levels`);
       });
 
       console.log('Master data synchronization completed successfully');
     } catch (error) {
-      console.error('Failed to sync master data:', error);
+      console.error('Failed to sync master data. Error details:', error);
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
       throw error;
     }
   }
