@@ -3,26 +3,26 @@
     "target": "ES2022",
     "lib": ["ES2023"],
     "module": "ESNext",
-    "outDir": "dist",
+    "outDir": "./dist",
     "skipLibCheck": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": false,
+    "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "noEmit": false,
+    "noEmit": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
 
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    
+    /* Additional Settings */
+    "resolveJsonModule": true
   },
-  "include": ["src/server/**/*.ts"],
-  "ts-node": {
-    "esm": true
-  }
+  "include": ["src/server/**/*.ts"]
 }
