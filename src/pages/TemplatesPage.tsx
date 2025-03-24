@@ -97,7 +97,7 @@ export function TemplatesPage() {
     example_question: '',
   });
 
-  const { data: templates, isLoading: isLoadingTemplates, error: templatesError } = useQuery<Template[]>({
+  const { data: templates, refetch: refetchTemplates, isLoading: isLoadingTemplates, error: templatesError } = useQuery<Template[]>({
     queryKey: ['templates'],
     queryFn: async () => {
       const response = await fetch('/api/templates');
@@ -106,7 +106,7 @@ export function TemplatesPage() {
     },
   });
 
-  const { data: subjects } = useQuery<Subject[]>({
+  const { data: subjects, isLoading: isLoadingSubjects, error: subjectsError } = useQuery<Subject[]>({
     queryKey: ['subjects'],
     queryFn: async () => {
       console.log('Fetching subjects...');
@@ -124,7 +124,7 @@ export function TemplatesPage() {
 
       const data = await response.json();
       console.log('Subjects fetched successfully:', data);
-      return response.json();
+      return data;
     },
   });
 
@@ -193,7 +193,7 @@ export function TemplatesPage() {
 
       setIsModalOpen(false);
       setEditingTemplate(null);
-      fetchTemplates();
+      refetchTemplates();
     } catch (error) {
       console.error('Error saving template:', error);
     }
@@ -231,7 +231,7 @@ export function TemplatesPage() {
         throw new Error('Failed to delete template');
       }
 
-      fetchTemplates();
+      refetchTemplates();
     } catch (error) {
       console.error('Error deleting template:', error);
     }
