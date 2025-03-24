@@ -30,13 +30,12 @@ export async function login(req: Request, res: Response) {
 
     const token = jwt.sign(
       { userId: user.id, email: user.email },
-      process.env.JWT_SECRET || 'your-secret-key',
+      process.env.JWT_SECRET || 'CountyHigh',
       { expiresIn: '24h' }
     );
 
     res.json({ token });
   } catch (error) {
-    console.error('Login error:', error);
     res.status(400).json({ error: 'Invalid request' });
   }
 }
