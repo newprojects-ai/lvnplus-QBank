@@ -4,24 +4,15 @@ import { z } from 'zod';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
-interface AIClientBase {
+interface MockAIClient {
   mockResponse: (messages: ChatCompletionMessageParam[]) => Promise<string>;
-  chat?: {
-    completions: {
-      create: (params: {
-        model: string;
-        temperature: number;
-        messages: ChatCompletionMessageParam[];
-      }) => Promise<{
-        choices: Array<{
-          message?: { content: string };
-        }>;
-      }>;
-    };
-  };
 }
 
-type AIClient = OpenAI | AIClientBase;
+type AIClient = OpenAI | MockAIClient;
+
+function isOpenAI(client: AIClient): client is OpenAI {
+  return client instanceof OpenAI;
+}
 
 const prisma = new PrismaClient();
 
@@ -130,6 +121,7 @@ export async function testAIConfig(req: Request, res: Response) {
 
     let response;
     if (config.provider === 'openai') {
+      if (!isOpenAI(ai)) throw new Error('Invalid OpenAI configuration');
       const completion = await ai.chat.completions.create({
         model: config.model,
         temperature: config.temperature || 0.7,
@@ -137,7 +129,7 @@ export async function testAIConfig(req: Request, res: Response) {
       });
       response = completion.choices[0]?.message?.content;
     } else {
-      response = await ai.mockResponse(messages);
+      response = await (ai as MockAIClient).mockResponse(messages);
     }
 
     res.json({ success: true, response });
