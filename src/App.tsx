@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
+import { Navigate } from 'react-router-dom';
 import { DashboardPage } from './pages/DashboardPage';
 import { TemplatesPage } from './pages/TemplatesPage';
 import { GeneratorPage } from './pages/GeneratorPage';
@@ -13,6 +14,14 @@ import { SettingsPage } from './pages/SettingsPage';
 
 const queryClient = new QueryClient();
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/login" />;
+  }
+  return <>{children}</>;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -21,13 +30,15 @@ function App() {
           <Toaster position="top-right" />
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={<Layout />}>
-              <Route index element={<DashboardPage />} />
-              <Route path="templates" element={<TemplatesPage />} />
-              <Route path="generator" element={<GeneratorPage />} />
-              <Route path="reviewer" element={<ReviewerPage />} />
-              <Route path="export" element={<ExportPage />} />
-              <Route path="settings" element={<SettingsPage />} />
+            <Route path="/" element={
+              <ProtectedRoute><Layout /></ProtectedRoute>
+            }>
+              <Route index element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+              <Route path="templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
+              <Route path="generator" element={<ProtectedRoute><GeneratorPage /></ProtectedRoute>} />
+              <Route path="reviewer" element={<ProtectedRoute><ReviewerPage /></ProtectedRoute>} />
+              <Route path="export" element={<ProtectedRoute><ExportPage /></ProtectedRoute>} />
+              <Route path="settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             </Route>
           </Routes>
         </div>

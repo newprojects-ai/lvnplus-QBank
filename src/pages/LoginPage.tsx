@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { Brain } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const token = localStorage.getItem('token');
+
+  // If already logged in, redirect to dashboard
+  if (token) {
+    return <Navigate to="/" />;
+  }
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -29,6 +36,7 @@ export function LoginPage() {
       const data = await response.json();
       localStorage.setItem('token', data.token);
       navigate('/');
+      toast.success('Login successful!');
     } catch (error) {
       toast.error('Login failed. Please check your credentials.');
     } finally {
