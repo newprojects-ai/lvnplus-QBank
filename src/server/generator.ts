@@ -5,6 +5,12 @@ import OpenAI from 'openai';
 import { AuthRequest } from './middleware.js';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
+interface MockAIClient {
+  mockResponse: (messages: ChatCompletionMessageParam[]) => Promise<string>;
+}
+
+type AIClient = OpenAI | MockAIClient;
+
 const prisma = new PrismaClient();
 
 const generateSchema = z.object({
@@ -56,7 +62,7 @@ async function generateQuestionsAsync(batchId: string, template: any, userId: st
       throw new Error('No AI configuration found');
     }
 
-    let ai;
+    let ai: AIClient;
     if (aiConfig.provider === 'openai') {
       ai = new OpenAI({ apiKey: aiConfig.api_key });
     } else {
@@ -105,13 +111,13 @@ async function generateQuestionsAsync(batchId: string, template: any, userId: st
         let response;
         if (aiConfig.provider === 'openai') {
           const completion = await ai.chat.completions.create({
-            model: batch.ai_model,
-            temperature: batch.ai_temperature,
+            model: batch.ai_model as "gpt-4" | "gpt-3.5-turbo",
+            temperature: batch.ai_temperature || 0.7,
             messages,
           });
           response = completion.choices[0]?.message?.content;
         } else {
-          response = await ai.mockResponse(messages);
+          response = await (ai as MockAIClient).mockResponse(messages);
         }
 
         if (!response) continue;

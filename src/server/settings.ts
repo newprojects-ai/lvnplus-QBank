@@ -4,6 +4,12 @@ import { z } from 'zod';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
+interface MockAIClient {
+  mockResponse: (messages: ChatCompletionMessageParam[]) => Promise<string>;
+}
+
+type AIClient = OpenAI | MockAIClient;
+
 const prisma = new PrismaClient();
 
 const aiConfigSchema = z.object({
@@ -91,13 +97,13 @@ export async function testAIConfig(req: Request, res: Response) {
       return res.status(404).json({ error: 'Configuration not found' });
     }
 
-    let ai;
+    let ai: AIClient;
     if (config.provider === 'openai') {
       ai = new OpenAI({ apiKey: config.api_key });
     } else {
       ai = {
         mockResponse: async (messages: ChatCompletionMessageParam[]) => {
-          response = await ai.mockResponse(messages);
+          return "Test successful!";
         }
       };
     }
@@ -112,18 +118,13 @@ export async function testAIConfig(req: Request, res: Response) {
     let response;
     if (config.provider === 'openai') {
       const completion = await ai.chat.completions.create({
-        model: config.model,
-        temperature: config.temperature,
+        model: config.model as "gpt-4" | "gpt-3.5-turbo",
+        temperature: config.temperature || 0.7,
         messages,
       });
       response = completion.choices[0]?.message?.content;
     } else {
-      const completion = await ai.chat.complete({
-        model: config.model,
-        temperature: config.temperature,
-        messages,
-      });
-      response = completion.output;
+      response = await (ai as MockAIClient).mockResponse(messages);
     }
 
     res.json({ success: true, response });
