@@ -149,15 +149,12 @@ const prisma = new PrismaClient();
 
 export async function getSubjects(_req: Request, res: Response) {
   try {
-    console.log('Processing getSubjects request...');
     res.setHeader('Content-Type', 'application/json');
 
     const subjects = await prisma.subjects.findMany({
       where: { description: { not: null } },
       orderBy: { subject_name: 'asc' },
     });
-
-    console.log(`Found ${subjects.length} subjects`);
 
     res.json(subjects);
   } catch (error) {

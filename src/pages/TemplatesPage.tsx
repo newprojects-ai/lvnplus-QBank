@@ -303,9 +303,19 @@ export function TemplatesPage() {
 
   return (
     <div className="p-8">
-      {(authError || subjectsError) && (
+      {/* Error Messages */}
+      {(authError || subjectsError || templatesError) && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-          {authError || (subjectsError && 'Failed to load required data. Please try again.')}
+          {authError || 
+           (subjectsError && 'Failed to load subjects. Please try again.') ||
+           (templatesError && 'Failed to load templates. Please try again.')}
+        </div>
+      )}
+
+      {/* Loading States */}
+      {(isLoadingTemplates || isLoadingSubjects) && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-700">
+          Loading...
         </div>
       )}
 
