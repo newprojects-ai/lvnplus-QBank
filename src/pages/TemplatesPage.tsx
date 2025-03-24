@@ -86,13 +86,14 @@ export function TemplatesPage() {
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<number | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Check for authentication
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      toast.error('Please log in to continue');
       navigate('/login');
+      return;
     }
   }, [navigate]);
 
@@ -117,6 +118,7 @@ export function TemplatesPage() {
       if (!token) {
         throw new Error('No authentication token found');
       }
+      setAuthError(null);
 
       const response = await fetch('/api/templates', {
         headers: {
@@ -125,10 +127,12 @@ export function TemplatesPage() {
       });
       
       if (!response.ok) {
-        if (response.status === 401) {
+        const data = await response.json();
+        if (response.status === 401 || data.error?.includes('token')) {
+          setAuthError('Session expired. Please log in again.');
           localStorage.removeItem('token');
           navigate('/login');
-          throw new Error('Session expired. Please log in again.');
+          return [];
         }
         throw new Error('Failed to fetch templates');
       }
@@ -299,6 +303,12 @@ export function TemplatesPage() {
 
   return (
     <div className="p-8">
+      {authError && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700">{authError}</p>
+        </div>
+      )}
+
       {/* Debug information */}
       {subjectsError && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">

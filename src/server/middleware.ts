@@ -1,6 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import * as jwt from 'jsonwebtoken';
 
+interface JWTPayload {
+  userId: string;
+  email: string;
+  iat?: number;
+  exp?: number;
+}
+
 export interface AuthRequest extends Request {
   user?: {
     userId: string;
@@ -17,18 +24,27 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
 
   const token = authHeader.split(' ')[1];
 
+  if (!token) {
+    return res.status(401).json({ error: 'Invalid token format' });
+  }
+
   try {
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET || 'your-secret-key'
-    ) as {
-      userId: string;
-      email: string;
-    };
+    ) as JWTPayload;
+
+    if (!decoded.userId || !decoded.email) {
+      return res.status(401).json({ error: 'Invalid token payload' });
+    }
 
     req.user = decoded;
     next();
   } catch (error) {
-    return res.status(401).json({ error: 'Invalid token' });
+    console.error('Token verification error:', error);
+    if (error instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({ error: 'Token expired' });
+    }
+    return res.status(401).json({ error: 'Invalid or malformed token' });
   }
 }
