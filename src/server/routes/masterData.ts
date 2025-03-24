@@ -150,13 +150,14 @@ const prisma = new PrismaClient();
 export async function getSubjects(_req: Request, res: Response) {
   try {
     console.log('Processing getSubjects request...');
+    res.setHeader('Content-Type', 'application/json');
 
     const subjects = await prisma.subjects.findMany({
       where: { description: { not: null } },
       orderBy: { subject_name: 'asc' },
     });
 
-    console.log(`Found ${subjects.length} subjects:`, subjects);
+    console.log(`Found ${subjects.length} subjects`);
 
     res.json(subjects);
   } catch (error) {
@@ -166,7 +167,11 @@ export async function getSubjects(_req: Request, res: Response) {
       message: error instanceof Error ? error.message : 'Unknown error'
     });
 
-    res.status(500).json({ error: 'Failed to fetch subjects' });
+    res.setHeader('Content-Type', 'application/json');
+    res.status(500).json({ 
+      error: 'Failed to fetch subjects',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 }
 
