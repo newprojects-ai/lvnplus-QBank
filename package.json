@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "server": "tsc -p tsconfig.node.json && node dist/server/index.js",
+    "server": "tsc -p tsconfig.node.json && node dist/index.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
     "build": "vite build",
     "lint": "eslint .",

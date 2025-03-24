@@ -1,5 +1,5 @@
-import * as express from 'express';
-import * as cors from 'cors';
+import express from 'express';
+import cors from 'cors';
 import { login } from './auth.js';
 import { authenticate } from './middleware.js';
 import {
@@ -25,11 +25,10 @@ import {
 } from './settings.js';
 
 // Initialize express
-const app = express.default();
+const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors.default());
 
 // Database connection check
 import { PrismaClient } from '@prisma/client';

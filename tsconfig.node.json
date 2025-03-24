@@ -2,18 +2,18 @@
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2023"],
-    "module": "NodeNext",
+    "module": "ESNext",
     "outDir": "dist",
     "skipLibCheck": true,
 
     /* Bundler mode */
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "bundler",
     "allowImportingTsExtensions": false,
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": false,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
+    "allowSyntheticDefaultImports": true
 
     /* Linting */
     "strict": true,
@@ -21,5 +21,8 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/server/**/*.ts"]
+  "include": ["src/server/**/*.ts"],
+  "ts-node": {
+    "esm": true
+  }
 }
