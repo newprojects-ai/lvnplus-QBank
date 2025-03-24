@@ -11,6 +11,7 @@ import { GeneratorPage } from './pages/GeneratorPage';
 import { ReviewerPage } from './pages/ReviewerPage';
 import { ExportPage } from './pages/ExportPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { DeepSeekPlayground } from './pages/DeepSeekPlayground';
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ function App() {
               <Route path="generator" element={<ProtectedRoute><GeneratorPage /></ProtectedRoute>} />
               <Route path="reviewer" element={<ProtectedRoute><ReviewerPage /></ProtectedRoute>} />
               <Route path="export" element={<ProtectedRoute><ExportPage /></ProtectedRoute>} />
+              <Route path="deepseek" element={<ProtectedRoute><DeepSeekPlayground /></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             </Route>
           </Routes>
