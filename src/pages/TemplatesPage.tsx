@@ -303,27 +303,9 @@ export function TemplatesPage() {
 
   return (
     <div className="p-8">
-      {authError && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-700">{authError}</p>
-        </div>
-      )}
-
-      {/* Debug information */}
-      {subjectsError && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-700">Error loading subjects: {subjectsError.message}</p>
-        </div>
-      )}
-      {isLoadingSubjects && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-blue-700">Loading subjects...</p>
-        </div>
-      )}
-      {subjects && (
-        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-green-700">Subjects loaded: {subjects.length}</p>
-          <pre className="mt-2 text-sm">{JSON.stringify(subjects, null, 2)}</pre>
+      {(authError || subjectsError) && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          {authError || (subjectsError && 'Failed to load required data. Please try again.')}
         </div>
       )}
 
