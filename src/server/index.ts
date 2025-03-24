@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import './config/database';
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './swagger';
 import { login } from './auth';
