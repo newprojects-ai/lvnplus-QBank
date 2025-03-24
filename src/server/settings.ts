@@ -106,7 +106,7 @@ export async function testAIConfig(req: Request, res: Response) {
       ai = new OpenAI({ apiKey: config.api_key });
     } else {
       ai = {
-        mockResponse: async (messages: ChatCompletionMessageParam[]) => {
+        mockResponse: async (_messages: ChatCompletionMessageParam[]) => {
           return "Test successful!";
         }
       };
