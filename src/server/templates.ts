@@ -18,7 +18,7 @@ const templateSchema = z.object({
   example_question: z.string().optional(),
 });
 
-export async function getTemplates(req: Request, res: Response) {
+export async function getTemplates(_req: Request, res: Response) {
   try {
     const templates = await prisma.templates.findMany({
       orderBy: { created_at: 'desc' },

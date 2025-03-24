@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import OpenAI from 'openai';
@@ -62,15 +62,11 @@ async function generateQuestionsAsync(batchId: string, template: any, userId: st
     } else {
       // Mock DeepSeek implementation until API is available
       ai = {
-        chat: {
-          complete: async ({ messages }: { messages: any[] }) => {
-            // Simulate API response
-            return {
-              output: `Generated question based on: ${messages[messages.length - 1].content}\n\n` +
-                     `Option A: First option\nOption B: Second option\n\n` +
-                     `Detailed solution here`
-            };
-          }
+        mockResponse: async (messages: ChatCompletionMessageParam[]) => {
+          // Simulate API response
+          return `Generated question based on: ${messages[messages.length - 1].content}\n\n` +
+                 `Option A: First option\nOption B: Second option\n\n` +
+                 `Detailed solution here`;
         }
       };
     }
@@ -115,12 +111,7 @@ async function generateQuestionsAsync(batchId: string, template: any, userId: st
           });
           response = completion.choices[0]?.message?.content;
         } else {
-          const completion = await ai.chat.complete({
-            model: batch.ai_model,
-            temperature: batch.ai_temperature,
-            messages,
-          });
-          response = completion.output;
+          response = await ai.mockResponse(messages);
         }
 
         if (!response) continue;

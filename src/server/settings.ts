@@ -16,7 +16,7 @@ const aiConfigSchema = z.object({
   is_default: z.boolean(),
 });
 
-export async function getAIConfigs(req: Request, res: Response) {
+export async function getAIConfigs(_req: Request, res: Response) {
   try {
     const configs = await prisma.ai_config.findMany({
       orderBy: { created_at: 'desc' },
@@ -95,12 +95,9 @@ export async function testAIConfig(req: Request, res: Response) {
     if (config.provider === 'openai') {
       ai = new OpenAI({ apiKey: config.api_key });
     } else {
-      // Mock DeepSeek implementation
       ai = {
-        chat: {
-          complete: async ({ messages }: { messages: any[] }) => ({
-            output: "Test successful!"
-          })
+        mockResponse: async (messages: ChatCompletionMessageParam[]) => {
+          response = await ai.mockResponse(messages);
         }
       };
     }
