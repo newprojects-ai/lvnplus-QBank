@@ -34,13 +34,6 @@ app.use(cors());
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
-// Initialize express
-const app = express();
-
-// Middleware
-app.use(express.json());
-app.use(cors());
-
 async function checkDatabaseConnection() {
   try {
     await prisma.$connect();
