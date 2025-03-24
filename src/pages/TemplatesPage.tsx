@@ -97,7 +97,7 @@ export function TemplatesPage() {
     example_question: '',
   });
 
-  const { data: templates } = useQuery<Template[]>({
+  const { data: templates, isLoading: isLoadingTemplates, error: templatesError } = useQuery<Template[]>({
     queryKey: ['templates'],
     queryFn: async () => {
       const response = await fetch('/api/templates');
@@ -235,7 +235,19 @@ export function TemplatesPage() {
       </div>
 
       <div className="grid gap-6">
-        {templates.map((template) => (
+        {isLoadingTemplates ? (
+          <div className="bg-white rounded-lg shadow p-6 text-center">
+            <p className="text-gray-500">Loading templates...</p>
+          </div>
+        ) : templatesError ? (
+          <div className="bg-white rounded-lg shadow p-6 text-center">
+            <p className="text-red-500">Error loading templates. Please try again.</p>
+          </div>
+        ) : !templates?.length ? (
+          <div className="bg-white rounded-lg shadow p-6 text-center">
+            <p className="text-gray-500">No templates found. Create your first template!</p>
+          </div>
+        ) : templates?.map((template) => (
           <div key={template.id} className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-start mb-4">
               <div>
