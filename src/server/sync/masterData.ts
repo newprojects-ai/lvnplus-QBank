@@ -54,6 +54,11 @@ export class MasterDataSync {
   async connect() {
     try {
       console.log('Attempting to connect to LVNPLUS database...');
+      
+      if (!process.env.LVNPLUS_DB_HOST) {
+        throw new Error('LVNPLUS_DB_HOST environment variable is not set');
+      }
+      
       const env = envSchema.parse(process.env);
 
       this.lvnplusConnection = await mysql.createConnection({
@@ -65,8 +70,19 @@ export class MasterDataSync {
       });
 
       console.log('Successfully connected to LVNPLUS database');
+      
+      // Test the connection
+      await this.lvnplusConnection.query('SELECT 1');
+      console.log('Database connection test successful');
+      
     } catch (error) {
-      console.error('Failed to connect to LVNPLUS database:', error);
+      console.error('Failed to connect to LVNPLUS database.');
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
+      }
       throw error;
     }
   }
