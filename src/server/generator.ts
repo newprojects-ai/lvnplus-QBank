@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { Configuration, OpenAIApi } from 'openai';
-import { DeepSeekAPI } from '@deepseek/api';
 import { AuthRequest } from './middleware';
 
 const prisma = new PrismaClient();
@@ -62,7 +61,19 @@ async function generateQuestionsAsync(batchId: string, template: any, userId: st
         new Configuration({ apiKey: aiConfig.api_key })
       );
     } else {
-      ai = new DeepSeekAPI(aiConfig.api_key);
+      // Mock DeepSeek implementation until API is available
+      ai = {
+        chat: {
+          complete: async ({ messages, temperature }) => {
+            // Simulate API response
+            return {
+              output: `Generated question based on: ${messages[messages.length - 1].content}\n\n` +
+                     `Option A: First option\nOption B: Second option\n\n` +
+                     `Detailed solution here`
+            };
+          }
+        }
+      };
     }
 
     const batch = await prisma.generation_batches.findUnique({

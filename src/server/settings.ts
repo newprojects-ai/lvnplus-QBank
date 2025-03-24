@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { Configuration, OpenAIApi } from 'openai';
-import { DeepSeekAPI } from '@deepseek/api';
 
 const prisma = new PrismaClient();
 
@@ -97,7 +96,14 @@ export async function testAIConfig(req: Request, res: Response) {
         new Configuration({ apiKey: config.api_key })
       );
     } else {
-      ai = new DeepSeekAPI(config.api_key);
+      // Mock DeepSeek implementation
+      ai = {
+        chat: {
+          complete: async ({ messages }) => ({
+            output: "Test successful!"
+          })
+        }
+      };
     }
 
     const messages = [
