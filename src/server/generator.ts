@@ -5,11 +5,24 @@ import OpenAI from 'openai';
 import { AuthRequest } from './middleware.js';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
-interface MockAIClient {
+interface AIClientBase {
   mockResponse: (messages: ChatCompletionMessageParam[]) => Promise<string>;
+  chat?: {
+    completions: {
+      create: (params: {
+        model: string;
+        temperature: number;
+        messages: ChatCompletionMessageParam[];
+      }) => Promise<{
+        choices: Array<{
+          message?: { content: string };
+        }>;
+      }>;
+    };
+  };
 }
 
-type AIClient = OpenAI | MockAIClient;
+type AIClient = OpenAI | AIClientBase;
 
 const prisma = new PrismaClient();
 
@@ -68,7 +81,7 @@ async function generateQuestionsAsync(batchId: string, template: any, userId: st
     } else {
       // Mock DeepSeek implementation until API is available
       ai = {
-        mockResponse: async (messages: ChatCompletionMessageParam[]) => {
+        mockResponse: async (messages) => {
           // Simulate API response
           return `Generated question based on: ${messages[messages.length - 1].content}\n\n` +
                  `Option A: First option\nOption B: Second option\n\n` +
@@ -111,13 +124,13 @@ async function generateQuestionsAsync(batchId: string, template: any, userId: st
         let response;
         if (aiConfig.provider === 'openai') {
           const completion = await ai.chat.completions.create({
-            model: batch.ai_model as "gpt-4" | "gpt-3.5-turbo",
+            model: batch.ai_model,
             temperature: batch.ai_temperature || 0.7,
             messages,
           });
           response = completion.choices[0]?.message?.content;
         } else {
-          response = await (ai as MockAIClient).mockResponse(messages);
+          response = await ai.mockResponse(messages);
         }
 
         if (!response) continue;
