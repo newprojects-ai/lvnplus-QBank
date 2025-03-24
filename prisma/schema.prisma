@@ -49,7 +49,7 @@ model difficulty_levels {
   focus_area      String    @db.Text
   steps_required  String?   @db.VarChar(50)
   created_at      DateTime  @default(now()) @db.Timestamp(0)
-  active          Boolean   @default(true) @db.TinyInt(1)
+  active          Boolean   @default(true) @db.TinyInt
   subject         subjects  @relation(fields: [subject_id], references: [subject_id])
   templates       templates[]
 }
