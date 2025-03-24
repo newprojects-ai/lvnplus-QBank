@@ -20,15 +20,16 @@ import {
   getAIConfigs,
   createAIConfig,
   updateAIConfig,
-  deleteAIConfig, 
+  deleteAIConfig,
   testAIConfig
-}
+} from './settings';
 
 // Initialize express
 const app = express();
 
 // Middleware
 app.use(express.json());
+app.use(cors());
 
 // Database connection check
 import { PrismaClient } from '@prisma/client';

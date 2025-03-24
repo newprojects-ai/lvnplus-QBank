@@ -1,8 +1,8 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import OpenAI from 'openai';
-import { AuthRequest } from './middleware.js';
+import { OpenAI } from 'openai';
+import { AuthRequest } from './middleware';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 interface MockAIClient {
