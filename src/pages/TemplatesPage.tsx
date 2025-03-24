@@ -109,12 +109,21 @@ export function TemplatesPage() {
   const { data: subjects } = useQuery<Subject[]>({
     queryKey: ['subjects'],
     queryFn: async () => {
+      console.log('Fetching subjects...');
       const response = await fetch('/api/master-data/subjects', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      if (!response.ok) throw new Error('Failed to fetch subjects');
+      
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Failed to fetch subjects:', error);
+        throw new Error(`Failed to fetch subjects: ${error.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('Subjects fetched successfully:', data);
       return response.json();
     },
   });
@@ -230,6 +239,24 @@ export function TemplatesPage() {
 
   return (
     <div className="p-8">
+      {/* Debug information */}
+      {subjectsError && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700">Error loading subjects: {subjectsError.message}</p>
+        </div>
+      )}
+      {isLoadingSubjects && (
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-blue-700">Loading subjects...</p>
+        </div>
+      )}
+      {subjects && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-green-700">Subjects loaded: {subjects.length}</p>
+          <pre className="mt-2 text-sm">{JSON.stringify(subjects, null, 2)}</pre>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Templates</h1>
         <button
