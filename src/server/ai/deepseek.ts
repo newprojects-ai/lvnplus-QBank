@@ -8,12 +8,17 @@ export class DeepSeekAPI implements AIClient {
   chat = {
     complete: async (config: DeepSeekConfig) => {
       try {
+        if (!['deepseek-chat', 'deepseek-coder'].includes(config.model)) {
+          throw new Error('Invalid DeepSeek model name');
+        }
+
         const response = await axios.post(
           'https://api.deepseek.com/v1/chat/completions',
           {
             model: config.model,
             messages: config.messages,
             temperature: config.temperature,
+            role: config.role,
           },
           {
             headers: {
