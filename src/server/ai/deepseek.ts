@@ -8,11 +8,6 @@ export class DeepSeekAPI implements AIClient {
   chat = {
     complete: async (config: DeepSeekConfig) => {
       try {
-        // Validate model name
-        if (!['deepseek-chat', 'deepseek-coder'].includes(config.model)) {
-          throw new Error(`Invalid DeepSeek model name: ${config.model}. Must be either 'deepseek-chat' or 'deepseek-coder'`);
-        }
-
         const requestBody = {
           model: config.model,
           messages: config.messages,
@@ -47,12 +42,14 @@ export class DeepSeekAPI implements AIClient {
         if (axios.isAxiosError(error)) {
           const errorMessage = error.response?.data?.error?.message || error.message;
           const requestData = error.config?.data ? JSON.parse(error.config.data) : null;
-          throw new Error(JSON.stringify({
+          const errorDetails = {
             message: errorMessage,
             request: requestData,
             status: error.response?.status,
             statusText: error.response?.statusText
-          }));
+          };
+          console.error('DeepSeek API error:', errorDetails);
+          throw new Error(errorMessage);
         }
         throw error;
       }

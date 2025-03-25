@@ -20,12 +20,36 @@ const aiConfigSchema = z.object({
 export async function getAIConfigs(_req: Request, res: Response) {
   try {
     const configs = await prisma.ai_config.findMany({
+      include: {
+        model: {
+          include: {
+            provider: true
+          }
+        }
+      },
       orderBy: { created_at: 'desc' },
     });
     res.json(configs);
   } catch (error) {
     console.error('Get AI configs error:', error);
     res.status(500).json({ error: 'Failed to fetch AI configurations' });
+  }
+}
+
+export async function getAIModels(_req: Request, res: Response) {
+  try {
+    const models = await prisma.ai_models.findMany({
+      where: { active: true },
+      include: { provider: true },
+      orderBy: [
+        { provider_id: 'asc' },
+        { name: 'asc' }
+      ],
+    });
+    res.json(models);
+  } catch (error) {
+    console.error('Get AI models error:', error);
+    res.status(500).json({ error: 'Failed to fetch AI models' });
   }
 }
 
@@ -98,19 +122,37 @@ export async function testAIConfig(req: Request, res: Response) {
     const messages = [
       { 
         role: 'user' as const, 
-        content: 'Respond with "Test successful!" if you can read this message.' 
+        content: req.body.prompt || 'Test message'
       } satisfies ChatCompletionMessageParam
     ] satisfies ChatCompletionMessageParam[];
 
+    if (req.body.system_prompt) {
+      messages.unshift({
+        role: 'system' as const,
+        content: req.body.system_prompt
+      });
+    }
+
     const result = await ai.chat.complete({
       model: config.model,
-      temperature: config.temperature || 0.7,
+      temperature: req.body.temperature || config.temperature,
+      max_length: req.body.max_length || config.max_length,
+      top_p: req.body.top_p || config.top_p,
+      top_k: req.body.top_k || config.top_k,
+      frequency_penalty: req.body.frequency_penalty || config.frequency_penalty,
+      presence_penalty: req.body.presence_penalty || config.presence_penalty,
+      stop_sequences: req.body.stop_sequences || JSON.parse(config.stop_sequences || '[]'),
+      role: req.body.role,
       messages,
     });
 
-    const response = result.output;
-
-    res.json({ success: true, response });
+    res.json({
+      success: true,
+      response: result.output,
+      request: result.request,
+      usage: result.usage,
+      finish_reason: result.finish_reason
+    });
   } catch (error) {
     console.error('Test AI config error:', error);
     res.status(400).json({ 

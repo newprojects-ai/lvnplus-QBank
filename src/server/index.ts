@@ -97,6 +97,7 @@ app.get('/api/settings/ai', getAIConfigs);
 app.post('/api/settings/ai', createAIConfig);
 app.put('/api/settings/ai/:id', updateAIConfig);
 app.delete('/api/settings/ai/:id', deleteAIConfig);
+app.get('/api/settings/models', getAIModels);
 app.post('/api/settings/ai/:id/test', testAIConfig);
 
 const PORT = process.env.PORT || 3001;

@@ -27,6 +27,20 @@ export function SettingsPage() {
     is_default: false,
   });
 
+  const { data: aiModels } = useQuery({
+    queryKey: ['ai-models'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/settings/models', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch AI models');
+      return response.json();
+    },
+  });
+
   const { data: aiConfigs, refetch } = useQuery<AIConfig[]>({
     queryKey: ['ai-configs'],
     queryFn: async () => {
@@ -260,42 +274,30 @@ export function SettingsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Provider
-                  </label>
-                  <select
-                    value={formData.provider}
-                    onChange={(e) =>
-                      setFormData({ ...formData, provider: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    <option value="openai">OpenAI</option>
-                    <option value="deepseek">DeepSeek</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Model
                   </label>
                   <select
-                    value={formData.model}
-                    onChange={(e) =>
-                      setFormData({ ...formData, model: e.target.value })
-                    }
+                    value={formData.model_id || ''}
+                    onChange={(e) => {
+                      const model = aiModels?.find(m => m.id === e.target.value);
+                      if (model) {
+                        setFormData({
+                          ...formData,
+                          model_id: model.id,
+                          provider: model.provider.id,
+                          model: model.name,
+                          max_tokens: model.max_tokens
+                        });
+                      }
+                    }}
                     className="w-full px-3 py-2 border rounded-lg"
                   >
-                    {formData.provider === 'openai' ? (
-                      <>
-                        <option value="gpt-4">GPT-4</option>
-                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="deepseek-chat">DeepSeek Chat</option>
-                        <option value="deepseek-coder">DeepSeek Coder</option>
-                      </>
-                    )}
+                    <option value="">Select a model</option>
+                    {aiModels?.map((model) => (
+                      <option key={model.id} value={model.id}>
+                        {model.provider.name} - {model.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

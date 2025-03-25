@@ -157,4 +157,32 @@ model ai_config {
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
   is_default   Boolean  @default(false)
+  model_id     String?
+  model        ai_models? @relation(fields: [model_id], references: [id])
+}
+
+model ai_providers {
+  id           String   @id @db.VarChar(50)
+  name         String   @db.VarChar(100)
+  description  String?  @db.Text
+  api_base_url String?  @db.VarChar(255)
+  created_at   DateTime @default(now())
+  active       Boolean  @default(true)
+  models       ai_models[]
+}
+
+model ai_models {
+  id                String   @id @db.VarChar(50)
+  provider_id       String   @db.VarChar(50)
+  name             String   @db.VarChar(100)
+  description      String?  @db.Text
+  max_tokens       Int      @default(2048)
+  supports_functions Boolean @default(false)
+  supports_vision   Boolean @default(false)
+  created_at       DateTime @default(now())
+  active           Boolean  @default(true)
+  provider         ai_providers @relation(fields: [provider_id], references: [id])
+  configs          ai_config[]
+
+  @@unique([provider_id, name])
 }
