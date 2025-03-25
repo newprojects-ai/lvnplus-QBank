@@ -8,10 +8,11 @@ interface AIConfig {
   id: string;
   name: string;
   provider: string;
-  model: string;
+  model_name: string;
   max_tokens: number;
   temperature: number;
   is_default: boolean;
+  api_key: string;
 }
 
 interface AIProvider {
@@ -43,7 +44,7 @@ export function SettingsPage() {
   const [formData, setFormData] = useState({
     name: '',
     provider: 'openai',
-    model: 'gpt-4',
+    model_name: 'gpt-4',
     api_key: '',
     max_tokens: 1000,
     temperature: 0.7,
@@ -117,7 +118,7 @@ export function SettingsPage() {
       toast.error('Authentication required');
       return;
     }
-    
+
     try {
       const response = await fetch(
         editingConfig ? `/api/settings/ai/${editingConfig.id}` : '/api/settings/ai',
@@ -133,11 +134,7 @@ export function SettingsPage() {
 
       if (!response.ok) throw new Error('Failed to save configuration');
 
-      toast.success(
-        editingConfig
-          ? 'Configuration updated successfully'
-          : 'Configuration created successfully'
-      );
+      toast.success(editingConfig ? 'Configuration updated' : 'Configuration created');
       setIsModalOpen(false);
       setEditingConfig(null);
       refetch();
@@ -280,7 +277,7 @@ export function SettingsPage() {
               setFormData({
                 name: '',
                 provider: 'openai',
-                model: 'gpt-4',
+                model_name: 'gpt-4',
                 api_key: '',
                 max_tokens: 1000,
                 temperature: 0.7,
@@ -625,7 +622,7 @@ export function SettingsPage() {
                       {config.name}
                     </h2>
                     <p className="text-sm text-gray-500">
-                      {config.provider} - {config.model}
+                      {config.provider} - {config.model_name}
                     </p>
                     {config.is_default && (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -640,7 +637,7 @@ export function SettingsPage() {
                         setFormData({
                           name: config.name,
                           provider: config.provider,
-                          model: config.model,
+                          model_name: config.model_name,
                           api_key: '',
                           max_tokens: config.max_tokens,
                           temperature: config.temperature,
