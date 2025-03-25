@@ -20,7 +20,14 @@ export function DeepSeekPlayground() {
   const { data: aiConfigs } = useQuery({
     queryKey: ['ai-configs'],
     queryFn: async () => {
-      const response = await fetch('/api/settings/ai');
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Authentication required');
+      
+      const response = await fetch('/api/settings/ai', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch AI configurations');
       return response.json();
     },
@@ -34,13 +41,22 @@ export function DeepSeekPlayground() {
       const deepseekConfig = aiConfigs?.find((c: any) => c.provider === 'deepseek');
       
       if (!deepseekConfig) {
-        toast.error('No DeepSeek configuration found. Please add one in Settings.');
+        toast.error('No DeepSeek configuration found');
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Authentication required');
         return;
       }
 
       const response = await fetch(`/api/settings/ai/${deepseekConfig.id}/test`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           prompt,
           model,
