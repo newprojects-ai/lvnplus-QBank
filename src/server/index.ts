@@ -31,6 +31,7 @@ import { getDashboardStats } from './dashboard';
 import { exportQuestions } from './export';
 import {
   getAIConfigs,
+  getAIModels,
   createAIConfig,
   updateAIConfig,
   deleteAIConfig,
