@@ -7,6 +7,7 @@ interface TestResult {
   success: boolean;
   response?: string;
   error?: string;
+  request?: any;
   timing?: number;
   usage?: {
     prompt_tokens: number;
@@ -110,6 +111,7 @@ export function AIPlayground() {
       setTestResult({
         success: data.success,
         response: data.response,
+        request: data.request,
         error: data.error,
         usage: data.usage,
         timing: Math.round(endTime - startTime),
@@ -124,6 +126,7 @@ export function AIPlayground() {
       setTestResult({
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
+        request: requestBody
       });
       toast.error('Failed to run test');
     } finally {
@@ -358,10 +361,10 @@ export function AIPlayground() {
           <div className="bg-gray-50 rounded-lg p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-medium text-gray-900">Request</h2>
-              {requestData && (
+              {testResult?.request && (
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(JSON.stringify(requestData, null, 2));
+                    navigator.clipboard.writeText(JSON.stringify(testResult.request, null, 2));
                     toast.success('Request copied to clipboard');
                   }}
                   className="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
@@ -370,9 +373,9 @@ export function AIPlayground() {
                 </button>
               )}
             </div>
-            {requestData ? (
+            {testResult?.request ? (
               <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 bg-white p-4 rounded-lg border border-gray-200">
-                {JSON.stringify(requestData, null, 2)}
+                {JSON.stringify(testResult.request, null, 2)}
               </pre>
             ) : (
               <div className="text-center text-gray-500 py-12">

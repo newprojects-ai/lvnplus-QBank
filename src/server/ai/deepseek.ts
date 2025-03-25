@@ -8,24 +8,27 @@ export class DeepSeekAPI implements AIClient {
   chat = {
     complete: async (config: DeepSeekConfig) => {
       try {
+        // Validate model name
         if (!['deepseek-chat', 'deepseek-coder'].includes(config.model)) {
-          throw new Error('Invalid DeepSeek model name');
+          throw new Error(`Invalid DeepSeek model name: ${config.model}. Must be either 'deepseek-chat' or 'deepseek-coder'`);
         }
+
+        const requestBody = {
+          model: config.model,
+          messages: config.messages,
+          temperature: config.temperature,
+          max_tokens: config.max_length,
+          top_p: config.top_p,
+          top_k: config.top_k,
+          frequency_penalty: config.frequency_penalty,
+          presence_penalty: config.presence_penalty,
+          stop: config.stop_sequences,
+          role: config.role,
+        };
 
         const response = await axios.post(
           'https://api.deepseek.com/v1/chat/completions',
-          {
-            model: config.model,
-            messages: config.messages,
-            temperature: config.temperature,
-            max_tokens: config.max_length,
-            top_p: config.top_p,
-            top_k: config.top_k,
-            frequency_penalty: config.frequency_penalty,
-            presence_penalty: config.presence_penalty,
-            stop: config.stop_sequences,
-            role: config.role,
-          },
+          requestBody,
           {
             headers: {
               'Authorization': `Bearer ${this.apiKey}`,
@@ -37,11 +40,19 @@ export class DeepSeekAPI implements AIClient {
         return {
           output: response.data.choices[0].message.content,
           usage: response.data.usage,
+          request: requestBody,
           finish_reason: response.data.choices[0].finish_reason
         };
       } catch (error) {
         if (axios.isAxiosError(error)) {
-          throw new Error(error.response?.data?.error?.message || error.message);
+          const errorMessage = error.response?.data?.error?.message || error.message;
+          const requestData = error.config?.data ? JSON.parse(error.config.data) : null;
+          throw new Error(JSON.stringify({
+            message: errorMessage,
+            request: requestData,
+            status: error.response?.status,
+            statusText: error.response?.statusText
+          }));
         }
         throw error;
       }
@@ -49,11 +60,25 @@ export class DeepSeekAPI implements AIClient {
   };
 
   async mockResponse(messages: ChatCompletionMessageParam[], role?: string): Promise<AIResponse> {
-    const result = await this.chat.complete({ messages, role, model: 'deepseek-chat', temperature: 0.7 });
+    const result = await this.chat.complete({
+      messages,
+      role,
+      model: 'deepseek-chat',
+      temperature: 0.7,
+      max_length: 2048,
+      top_p: 0.9,
+      top_k: 50,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+      stop_sequences: []
+    });
+
     return {
       success: true,
       response: result.output,
-      usage: result.usage
+      usage: result.usage,
+      request: result.request,
+      finish_reason: result.finish_reason
     };
   }
 }

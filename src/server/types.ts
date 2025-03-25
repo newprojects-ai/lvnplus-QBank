@@ -34,6 +34,7 @@ export interface AIResponse {
   success: boolean;
   response?: string;
   error?: string;
+  request?: any;
   usage?: TokenUsage;
   finish_reason?: string;
 }
