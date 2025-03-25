@@ -18,6 +18,12 @@ export class DeepSeekAPI implements AIClient {
             model: config.model,
             messages: config.messages,
             temperature: config.temperature,
+            max_tokens: config.max_length,
+            top_p: config.top_p,
+            top_k: config.top_k,
+            frequency_penalty: config.frequency_penalty,
+            presence_penalty: config.presence_penalty,
+            stop: config.stop_sequences,
             role: config.role,
           },
           {
@@ -31,6 +37,7 @@ export class DeepSeekAPI implements AIClient {
         return {
           output: response.data.choices[0].message.content,
           usage: response.data.usage,
+          finish_reason: response.data.choices[0].finish_reason
         };
       } catch (error) {
         if (axios.isAxiosError(error)) {

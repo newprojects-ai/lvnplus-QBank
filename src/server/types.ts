@@ -13,6 +13,13 @@ export interface AIClient {
 export interface DeepSeekConfig {
   model: string;
   temperature: number;
+  max_length?: number;
+  top_p?: number;
+  top_k?: number;
+  frequency_penalty?: number;
+  presence_penalty?: number;
+  stop_sequences?: string[];
+  system_prompt?: string;
   role?: string;
   messages: ChatCompletionMessageParam[];
 }
@@ -28,4 +35,5 @@ export interface AIResponse {
   response?: string;
   error?: string;
   usage?: TokenUsage;
+  finish_reason?: string;
 }

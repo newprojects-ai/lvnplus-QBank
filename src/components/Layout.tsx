@@ -8,7 +8,7 @@ const navigation = [
   { name: 'Generator', href: '/generator', icon: Brain },
   { name: 'Reviewer', href: '/reviewer', icon: FileCheck },
   { name: 'Export', href: '/export', icon: Upload },
-  { name: 'DeepSeek', href: '/deepseek', icon: Sparkles },
+  { name: 'AI Playground', href: '/playground', icon: Sparkles },
   { name: 'Settings', href: '/settings', icon: Cog },
 ];
 
