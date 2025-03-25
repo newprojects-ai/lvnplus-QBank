@@ -17,6 +17,25 @@ const aiConfigSchema = z.object({
   is_default: z.boolean(),
 });
 
+export async function getAIModels(_req: Request, res: Response) {
+  try {
+    const models = await prisma.ai_models.findMany({
+      where: { active: true },
+      include: {
+        provider: true
+      },
+      orderBy: [
+        { provider_id: 'asc' },
+        { name: 'asc' }
+      ],
+    });
+    res.json(models);
+  } catch (error) {
+    console.error('Get AI models error:', error);
+    res.status(500).json({ error: 'Failed to fetch AI models' });
+  }
+}
+
 export async function getAIConfigs(_req: Request, res: Response) {
   try {
     const configs = await prisma.ai_config.findMany({
