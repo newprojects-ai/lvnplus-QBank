@@ -1,18 +1,6 @@
 import React from 'react';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  getAIConfigs,
-  getAIModels,
-  getAIProviders,
-  createAIProvider,
-  updateAIProvider,
-  createAIModel,
-  updateAIModel,
-  createAIConfig,
-  updateAIConfig,
-  deleteAIConfig,
-} from './api';
 import { Plus, Pencil, Trash2, Settings, Zap, Server, Cpu } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -753,99 +741,6 @@ export function SettingsPage() {
           </div>
         </div>
       </div>
-
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full">
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {editingConfig ? 'Edit Configuration' : 'New Configuration'}
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="My GPT-4 Configuration"
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Model
-                  </label>
-                  <select
-                    value={formData.model_id || ''}
-                    onChange={(e) => {
-                      const model = aiModels?.find(m => m.id === e.target.value);
-                      if (model) {
-                        setFormData({
-                          ...formData,
-                          model_id: model.id,
-                          provider: model.provider.id,
-                          model: model.name,
-                          max_tokens: model.max_tokens
-                        });
-                      }
-                    }}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    <option value="">Select a model</option>
-                    {aiModels?.map((model) => (
-                      <option key={model.id} value={model.id}>
-                        {model.provider.name} - {model.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    API Key
-                  </label>
-                  <input
-                    type="password"
-                    value={formData.api_key}
-                    onChange={(e) =>
-                      setFormData({ ...formData, api_key: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required={!editingConfig}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Max Tokens
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.max_tokens}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        max_tokens: parseInt(e.target.value),
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
-                </div
+    </div>
+  );
+}
