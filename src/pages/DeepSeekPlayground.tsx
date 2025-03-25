@@ -8,11 +8,17 @@ interface TestResult {
   response?: string;
   error?: string;
   timing?: number;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
 }
 
 export function DeepSeekPlayground() {
   const [prompt, setPrompt] = useState('Generate a math question about quadratic equations.');
   const [model, setModel] = useState('deepseek-chat');
+  const [role, setRole] = useState('teacher');
   const [temperature, setTemperature] = useState(0.7);
   const [isLoading, setIsLoading] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -60,6 +66,7 @@ export function DeepSeekPlayground() {
         body: JSON.stringify({
           prompt,
           model,
+          role,
           temperature,
         }),
       });
@@ -71,6 +78,7 @@ export function DeepSeekPlayground() {
         success: data.success,
         response: data.response,
         error: data.error,
+        usage: data.usage,
         timing: Math.round(endTime - startTime),
       });
 
@@ -135,6 +143,22 @@ export function DeepSeekPlayground() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
+              Role
+            </label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg bg-white"
+            >
+              <option value="teacher">Teacher</option>
+              <option value="student">Student</option>
+              <option value="expert">Subject Expert</option>
+              <option value="">No Role</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Temperature
             </label>
             <input
@@ -171,7 +195,7 @@ export function DeepSeekPlayground() {
             {testResult && (
               <div className="flex items-center gap-4">
                 <span className="text-sm text-gray-500">
-                  {testResult.timing}ms
+                  {testResult.timing}ms | {testResult.usage?.total_tokens || 0} tokens
                 </span>
                 <button
                   onClick={() => {
@@ -192,6 +216,11 @@ export function DeepSeekPlayground() {
                 testResult.success ? 'bg-green-50 border border-green-200' : 
                 'bg-red-50 border border-red-200'
               }`}>
+                {testResult.usage && (
+                  <div className="mb-2 text-xs text-gray-500">
+                    Tokens: {testResult.usage.prompt_tokens} prompt + {testResult.usage.completion_tokens} completion = {testResult.usage.total_tokens} total
+                  </div>
+                )}
                 <pre className={`whitespace-pre-wrap font-mono text-sm ${
                   testResult.success ? 'text-green-800' : 'text-red-800'
                 }`}>
