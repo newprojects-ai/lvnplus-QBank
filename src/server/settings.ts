@@ -9,13 +9,13 @@ import type { AIClient } from './types';
 const prisma = new PrismaClient();
 
 const aiConfigSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  provider: z.string(),
-  model: z.string(),
-  api_key: z.string(),
-  max_tokens: z.number().min(1),
+  name: z.string().min(1),
+  provider: z.string().min(1),
+  model_name: z.string().min(1),
+  api_key: z.string().min(1),
+  max_tokens: z.number().int().positive(),
   temperature: z.number().min(0).max(1),
-  is_default: z.boolean(),
+  is_default: z.boolean().default(false),
 });
 
 const providerSchema = z.object({
@@ -57,6 +57,7 @@ export async function getAIConfigs(_req: Request, res: Response) {
 export async function createAIConfig(req: Request, res: Response) {
   try {
     const data = aiConfigSchema.parse(req.body);
+    console.log('Creating AI config with data:', { ...data, api_key: '[REDACTED]' });
     
     if (data.is_default) {
       await prisma.ai_config.updateMany({
@@ -66,13 +67,24 @@ export async function createAIConfig(req: Request, res: Response) {
 
     const config = await prisma.ai_config.create({ 
       data: {
-        id: uuidv4(),
-        ...data
+        id: uuidv4(), // Generate new UUID
+        name: data.name,
+        provider: data.provider,
+        model_name: data.model_name,
+        api_key: data.api_key,
+        max_tokens: data.max_tokens,
+        temperature: data.temperature,
+        is_default: data.is_default
       }
     });
+
+    console.log('AI config created successfully:', { id: config.id, name: config.name });
     res.json(config);
   } catch (error) {
-    console.error('Create AI config error:', error);
+    console.error('Create AI config error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     res.status(400).json({ error: 'Invalid AI configuration data' });
   }
 }

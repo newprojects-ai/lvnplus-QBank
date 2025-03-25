@@ -113,6 +113,8 @@ export function SettingsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('Submitting form data:', { ...formData, api_key: '[REDACTED]' });
+
     const token = localStorage.getItem('token');
     if (!token) {
       toast.error('Authentication required');
@@ -134,12 +136,16 @@ export function SettingsPage() {
 
       if (!response.ok) throw new Error('Failed to save configuration');
 
+      const result = await response.json();
+      console.log('Save response:', result);
+
       toast.success(editingConfig ? 'Configuration updated' : 'Configuration created');
       setIsModalOpen(false);
       setEditingConfig(null);
       refetch();
     } catch (error) {
-      toast.error('Failed to save configuration');
+      console.error('Save error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to save configuration');
     }
   };
 
