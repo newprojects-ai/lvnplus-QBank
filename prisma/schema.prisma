@@ -150,7 +150,7 @@ model ai_config {
   id           String   @id @default(uuid())
   name         String   @db.VarChar(255)
   provider     String   @db.VarChar(20)
-  model        String   @db.VarChar(50)
+  model_name   String   @db.VarChar(50)
   api_key      String   @db.VarChar(255)
   max_tokens   Int      @default(1000)
   temperature  Float    @default(0.7)
@@ -159,6 +159,13 @@ model ai_config {
   is_default   Boolean  @default(false)
   model_id     String?
   model        ai_models? @relation(fields: [model_id], references: [id])
+  max_length   Int?     @default(2048)
+  top_p        Float?   @default(0.9)
+  top_k        Int?     @default(50)
+  frequency_penalty Float? @default(0.0)
+  presence_penalty Float? @default(0.0)
+  stop_sequences String? @default("[]")
+  system_prompt String? @db.Text
 }
 
 model ai_providers {
