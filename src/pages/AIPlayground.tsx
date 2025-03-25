@@ -33,7 +33,6 @@ export function AIPlayground() {
   const [selectedConfig, setSelectedConfig] = useState<string>('');
   const [prompt, setPrompt] = useState('Generate a math question about quadratic equations.');
   const [role, setRole] = useState('teacher');
-  const [systemPrompt, setSystemPrompt] = useState('');
   const [temperature, setTemperature] = useState(0.7);
   const [maxLength, setMaxLength] = useState(2048);
   const [topP, setTopP] = useState(0.9);
@@ -43,7 +42,9 @@ export function AIPlayground() {
   const [stopSequences, setStopSequences] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const [requestData, setRequestData] = useState<any>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [systemPrompt, setSystemPrompt] = useState('');
 
   const { data: aiConfigs } = useQuery({
     queryKey: ['ai-configs'],
@@ -79,24 +80,28 @@ export function AIPlayground() {
         return;
       }
 
+      const requestBody = {
+        prompt,
+        role,
+        system_prompt: systemPrompt,
+        temperature,
+        max_length: maxLength,
+        top_p: topP,
+        top_k: topK,
+        frequency_penalty: frequencyPenalty,
+        presence_penalty: presencePenalty,
+        stop_sequences: stopSequences,
+      };
+
+      setRequestData(requestBody);
+
       const response = await fetch(`/api/settings/ai/${selectedConfig}/test`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          prompt,
-          role,
-          system_prompt: systemPrompt,
-          temperature,
-          max_length: maxLength,
-          top_p: topP,
-          top_k: topK,
-          frequency_penalty: frequencyPenalty,
-          presence_penalty: presencePenalty,
-          stop_sequences: stopSequences,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
@@ -178,18 +183,6 @@ export function AIPlayground() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              System Prompt
-            </label>
-            <textarea
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              className="w-full h-32 px-3 py-2 border rounded-lg font-mono text-sm"
-              placeholder="Optional system prompt to guide the model's behavior..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
               Role
             </label>
             <select
@@ -233,6 +226,18 @@ export function AIPlayground() {
 
           {showAdvanced && (
             <div className="space-y-4 border-t pt-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  System Prompt
+                </label>
+                <textarea
+                  value={systemPrompt}
+                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  className="w-full h-32 px-3 py-2 border rounded-lg font-mono text-sm"
+                  placeholder="Optional system prompt to guide the model's behavior..."
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Max Length
@@ -348,39 +353,87 @@ export function AIPlayground() {
           </div>
         </div>
 
-        <div className="bg-gray-50 rounded-lg p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium text-gray-900">Response</h2>
-            {testResult && (
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-500">
-                  {testResult.timing}ms
-                  {testResult.usage && ` | ${testResult.usage.total_tokens} tokens`}
-                </span>
+        <div className="space-y-6">
+          {/* Request Data */}
+          <div className="bg-gray-50 rounded-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-medium text-gray-900">Request</h2>
+              {requestData && (
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(testResult.response || '');
-                    toast.success('Copied to clipboard');
+                    navigator.clipboard.writeText(JSON.stringify(requestData, null, 2));
+                    toast.success('Request copied to clipboard');
                   }}
                   className="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
                 >
                   <Copy className="w-5 h-5" />
                 </button>
+              )}
+            </div>
+            {requestData ? (
+              <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 bg-white p-4 rounded-lg border border-gray-200">
+                {JSON.stringify(requestData, null, 2)}
+              </pre>
+            ) : (
+              <div className="text-center text-gray-500 py-12">
+                Run a test to see the request data
               </div>
             )}
           </div>
 
-          {testResult ? (
-            <div className="space-y-4">
-              <div className={`p-4 rounded-lg ${
-                testResult.success ? 'bg-green-50 border border-green-200' : 
-                'bg-red-50 border border-red-200'
-              }`}>
-                {testResult.usage && (
-                  <div className="mb-2 text-xs text-gray-500">
-                    Tokens: {testResult.usage.prompt_tokens} prompt + {testResult.usage.completion_tokens} completion = {testResult.usage.total_tokens} total
-                    {testResult.finish_reason && ` | Finished: ${testResult.finish_reason}`}
-                  </div>
+          {/* Response Data */}
+          <div className="bg-gray-50 rounded-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-medium text-gray-900">Response</h2>
+              {testResult && (
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-gray-500">
+                    {testResult.timing}ms
+                    {testResult.usage && ` | ${testResult.usage.total_tokens} tokens`}
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(testResult.response || '');
+                      toast.success('Response copied to clipboard');
+                    }}
+                    className="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
+                  >
+                    <Copy className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {testResult ? (
+              <div className="space-y-4">
+                <div className={`p-4 rounded-lg ${
+                  testResult.success ? 'bg-green-50 border border-green-200' : 
+                  'bg-red-50 border border-red-200'
+                }`}>
+                  {testResult.usage && (
+                    <div className="mb-2 text-xs text-gray-500">
+                      Tokens: {testResult.usage.prompt_tokens} prompt + {testResult.usage.completion_tokens} completion = {testResult.usage.total_tokens} total
+                      {testResult.finish_reason && ` | Finished: ${testResult.finish_reason}`}
+                    </div>
+                  )}
+                  <pre className={`whitespace-pre-wrap font-mono text-sm ${
+                    testResult.success ? 'text-green-800' : 'text-red-800'
+                  }`}>
+                    {testResult.success ? testResult.response : testResult.error}
+                  </pre>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 py-12">
+                Run a test to see the response
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
                 )}
                 <pre className={`whitespace-pre-wrap font-mono text-sm ${
                   testResult.success ? 'text-green-800' : 'text-red-800'
