@@ -1,16 +1,9 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import OpenAI from 'openai';
-import { DeepSeekAPI } from './mock/deepseek';
+import { DeepSeekAPI } from './ai/deepseek';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import type { MockAIClient } from './types';
-
-type AIClient = OpenAI | MockAIClient;
-
-function isOpenAI(client: AIClient): client is OpenAI {
-  return client instanceof OpenAI;
-}
+import type { AIClient } from './types';
 
 const prisma = new PrismaClient();
 
@@ -100,11 +93,7 @@ export async function testAIConfig(req: Request, res: Response) {
     }
 
     let ai: AIClient;
-    if (config.provider === 'openai') {
-      ai = new OpenAI({ apiKey: config.api_key });
-    } else {
-      ai = new DeepSeekAPI(config.api_key);
-    }
+    ai = new DeepSeekAPI(config.api_key);
 
     const messages = [
       { 
@@ -113,18 +102,13 @@ export async function testAIConfig(req: Request, res: Response) {
       } satisfies ChatCompletionMessageParam
     ] satisfies ChatCompletionMessageParam[];
 
-    let response;
-    if (config.provider === 'openai') {
-      if (!isOpenAI(ai)) throw new Error('Invalid OpenAI configuration');
-      const completion = await ai.chat.completions.create({
-        model: config.model,
-        temperature: config.temperature || 0.7,
-        messages,
-      });
-      response = completion.choices[0]?.message?.content;
-    } else {
-      response = await (ai as MockAIClient).mockResponse(messages);
-    }
+    const result = await ai.chat.complete({
+      model: config.model,
+      temperature: config.temperature || 0.7,
+      messages,
+    });
+
+    const response = result.output;
 
     res.json({ success: true, response });
   } catch (error) {

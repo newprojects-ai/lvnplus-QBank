@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { OpenAI } from 'openai';
-import { DeepSeekAPI } from './mock/deepseek';
+import { DeepSeekAPI } from './ai/deepseek';
 import { AuthRequest } from './middleware';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import type { MockAIClient } from './types';

@@ -1,7 +1,13 @@
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
-export interface MockAIClient {
-  mockResponse: (messages: ChatCompletionMessageParam[]) => Promise<string>;
+export interface AIClient {
+  chat: {
+    complete: (config: DeepSeekConfig) => Promise<{
+      output: string;
+      usage?: TokenUsage;
+    }>;
+  };
+  mockResponse?: (messages: ChatCompletionMessageParam[], role?: string) => Promise<AIResponse>;
 }
 
 export interface DeepSeekConfig {

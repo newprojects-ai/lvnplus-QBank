@@ -37,7 +37,6 @@ export class DeepSeekAPI implements AIClient {
   };
 
   async mockResponse(messages: ChatCompletionMessageParam[], role?: string): Promise<AIResponse> {
-    // This method is kept for compatibility but now just calls the real API
     const result = await this.chat.complete({ messages, role, model: 'deepseek-chat', temperature: 0.7 });
     return {
       success: true,
