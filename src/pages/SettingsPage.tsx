@@ -51,7 +51,6 @@ export function SettingsPage() {
   });
 
   const [providerFormData, setProviderFormData] = useState({
-    id: '',
     name: '',
     description: '',
     api_base_url: '',
@@ -59,7 +58,6 @@ export function SettingsPage() {
   });
 
   const [modelFormData, setModelFormData] = useState({
-    id: '',
     provider_id: '',
     name: '',
     description: '',
@@ -245,7 +243,6 @@ export function SettingsPage() {
             onClick={() => {
               setEditingProvider(null);
               setProviderFormData({
-                id: '',
                 name: '',
                 description: '',
                 api_base_url: '',
@@ -262,7 +259,6 @@ export function SettingsPage() {
             onClick={() => {
               setEditingModel(null);
               setModelFormData({
-                id: '',
                 provider_id: '',
                 name: '',
                 description: '',
@@ -319,19 +315,6 @@ export function SettingsPage() {
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Provider ID
-                  </label>
-                  <input
-                    type="text"
-                    value={providerFormData.id}
-                    onChange={(e) => setProviderFormData({ ...providerFormData, id: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
-                </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Name
@@ -422,19 +405,6 @@ export function SettingsPage() {
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Model ID
-                  </label>
-                  <input
-                    type="text"
-                    value={modelFormData.id}
-                    onChange={(e) => setModelFormData({ ...modelFormData, id: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
-                </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Provider
