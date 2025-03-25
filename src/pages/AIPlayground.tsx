@@ -414,9 +414,28 @@ export function AIPlayground() {
                   'bg-red-50 border border-red-200'
                 }`}>
                   {testResult.usage && (
-                    <div className="mb-2 text-xs text-gray-500">
-                      Tokens: {testResult.usage.prompt_tokens} prompt + {testResult.usage.completion_tokens} completion = {testResult.usage.total_tokens} total
-                      {testResult.finish_reason && ` | Finished: ${testResult.finish_reason}`}
+                    <div className="mb-4 text-sm">
+                      <div className="flex items-center justify-between mb-2 text-gray-700">
+                        <span className="font-medium">Token Usage:</span>
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                          Total: {testResult.usage.total_tokens}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg">
+                        <div>
+                          <span className="text-xs text-gray-500">Input Tokens</span>
+                          <p className="font-medium text-gray-900">{testResult.usage.prompt_tokens}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-gray-500">Output Tokens</span>
+                          <p className="font-medium text-gray-900">{testResult.usage.completion_tokens}</p>
+                        </div>
+                      </div>
+                      {testResult.finish_reason && (
+                        <div className="mt-2 text-xs text-gray-500">
+                          Finished: {testResult.finish_reason}
+                        </div>
+                      )}
                     </div>
                   )}
                   <pre className={`whitespace-pre-wrap font-mono text-sm ${
