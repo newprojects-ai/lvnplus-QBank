@@ -168,21 +168,33 @@ export function SettingsPage() {
                 <button
                   onClick={async () => {
                     try {
+                      const token = localStorage.getItem('token');
+                      if (!token) {
+                        toast.error('Authentication required');
+                        return;
+                      }
+
                       const response = await fetch(`/api/settings/ai/${config.id}/test`, {
                         method: 'POST',
                         headers: {
                           'Authorization': `Bearer ${token}`
                         }
                       });
+                      
+                      if (!response.ok) {
+                        throw new Error('Test request failed');
+                      }
+                      
                       const data = await response.json();
                       
                       if (data.success) {
                         toast.success('Configuration test successful!');
                       } else {
-                        toast.error(`Test failed: ${data.error}`);
+                        toast.error(data.error || 'Test failed');
                       }
                     } catch (error) {
-                      toast.error('Failed to test configuration');
+                      console.error('Test error:', error);
+                      toast.error(error instanceof Error ? error.message : 'Failed to test configuration');
                     }
                   }}
                   className="p-2 text-gray-600 hover:text-yellow-600 rounded-lg hover:bg-gray-100"

@@ -16,17 +16,17 @@ export class DeepSeekAPI implements MockAIClient {
   async mockResponse(messages: ChatCompletionMessageParam[]): Promise<string> {
     // Simulate API response delay
     await new Promise(resolve => setTimeout(resolve, 1000));
-
+    
     const lastMessage = messages[messages.length - 1];
     if (!lastMessage?.content) {
       throw new Error('Invalid message content');
     }
-
+    
     // Generate a mock response based on the input
-    if (lastMessage.content.includes('Test successful')) {
+    if (lastMessage.content.includes('Test successful!')) {
       return 'Test successful!';
     }
-
+    
     // For question generation, create a structured response
     return `Here's a question about the requested topic:
     
