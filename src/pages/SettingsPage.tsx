@@ -30,7 +30,12 @@ export function SettingsPage() {
   const { data: aiConfigs, refetch } = useQuery<AIConfig[]>({
     queryKey: ['ai-configs'],
     queryFn: async () => {
-      const response = await fetch('/api/settings/ai');
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/settings/ai', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch AI configurations');
       return response.json();
     },
@@ -39,12 +44,21 @@ export function SettingsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Authentication required');
+      return;
+    }
+    
     try {
       const response = await fetch(
         editingConfig ? `/api/settings/ai/${editingConfig.id}` : '/api/settings/ai',
         {
           method: editingConfig ? 'PUT' : 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify(formData),
         }
       );
@@ -67,9 +81,18 @@ export function SettingsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this configuration?')) return;
 
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Authentication required');
+      return;
+    }
+
     try {
       const response = await fetch(`/api/settings/ai/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (!response.ok) throw new Error('Failed to delete configuration');
@@ -147,6 +170,9 @@ export function SettingsPage() {
                     try {
                       const response = await fetch(`/api/settings/ai/${config.id}/test`, {
                         method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${token}`
+                        }
                       });
                       const data = await response.json();
                       
