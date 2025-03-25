@@ -434,21 +434,3 @@ export function AIPlayground() {
     </div>
   );
 }
-                )}
-                <pre className={`whitespace-pre-wrap font-mono text-sm ${
-                  testResult.success ? 'text-green-800' : 'text-red-800'
-                }`}>
-                  {testResult.success ? testResult.response : testResult.error}
-                </pre>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center text-gray-500 py-12">
-              Run a test to see the response
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
