@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, PlusCircle, MinusCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface PromptTemplate {
@@ -8,16 +8,44 @@ interface PromptTemplate {
   name: string;
   description: string;
   template_text: string;
-  variables: string;
+  variables: TemplateVariable[];
   created_at: string;
   created_by: string;
+}
+
+interface TemplateVariable {
+  id: string;
+  name: string;
+  display_name: string;
+  description: string;
+  variable_type_id: string;
+  is_required: boolean;
+  default_value?: string;
+  validation_rules?: string;
+  options?: string;
+  sort_order: number;
+}
+
+interface VariableType {
+  id: string;
+  name: string;
+  description: string;
+  has_options: boolean;
+}
+
+interface VariableOption {
+  id: string;
+  variable_type_id: string;
+  value: string;
+  label: string;
+  description?: string;
 }
 
 interface FormData {
   name: string;
   description: string;
   template_text: string;
-  variables: string;
+  variables: TemplateVariable[];
 }
 
 export function PromptTemplatesPage() {
@@ -27,7 +55,25 @@ export function PromptTemplatesPage() {
     name: '',
     description: '',
     template_text: '',
-    variables: '{}',
+    variables: [],
+  });
+
+  const { data: variableTypes } = useQuery<VariableType[]>({
+    queryKey: ['variable-types'],
+    queryFn: async () => {
+      const response = await fetch('/api/variable-types');
+      if (!response.ok) throw new Error('Failed to fetch variable types');
+      return response.json();
+    },
+  });
+
+  const { data: variableOptions } = useQuery<VariableOption[]>({
+    queryKey: ['variable-options'],
+    queryFn: async () => {
+      const response = await fetch('/api/variable-options');
+      if (!response.ok) throw new Error('Failed to fetch variable options');
+      return response.json();
+    },
   });
 
   const { data: templates, refetch } = useQuery<PromptTemplate[]>({
@@ -144,7 +190,7 @@ export function PromptTemplatesPage() {
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-2">Variables</h3>
                 <pre className="bg-gray-50 p-4 rounded-lg text-sm overflow-x-auto">
-                  {JSON.stringify(JSON.parse(template.variables), null, 2)}
+                  {JSON.stringify(template.variables, null, 2)}
                 </pre>
               </div>
             </div>
@@ -207,26 +253,186 @@ export function PromptTemplatesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Variables (JSON)
+                <label className="flex justify-between text-sm font-medium text-gray-700 mb-2">
+                  <span>Variables</span>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({
+                      ...formData,
+                      variables: [
+                        ...formData.variables,
+                        {
+                          id: crypto.randomUUID(),
+                          name: '',
+                          display_name: '',
+                          description: '',
+                          variable_type_id: 'text',
+                          is_required: true,
+                          sort_order: formData.variables.length,
+                        },
+                      ],
+                    })}
+                    className="text-indigo-600 hover:text-indigo-700"
+                  >
+                    <PlusCircle className="w-5 h-5" />
+                  </button>
                 </label>
-                <textarea
-                  value={formData.variables}
-                  onChange={(e) => {
-                    try {
-                      // Validate JSON
-                      JSON.parse(e.target.value);
-                      setFormData({ ...formData, variables: e.target.value });
-                    } catch (error) {
-                      // Allow invalid JSON while typing, but don't update if not valid
-                      if (e.target.value.trim() === '') {
-                        setFormData({ ...formData, variables: '{}' });
-                      }
-                    }
-                  }}
-                  className="w-full h-48 px-3 py-2 border rounded-lg font-mono text-sm"
-                  required
-                />
+                <div className="space-y-4">
+                  {formData.variables.map((variable, index) => (
+                    <div key={variable.id} className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex justify-between items-start mb-4">
+                        <h4 className="text-sm font-medium text-gray-900">
+                          Variable {index + 1}
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({
+                            ...formData,
+                            variables: formData.variables.filter(v => v.id !== variable.id),
+                          })}
+                          className="text-gray-400 hover:text-red-600"
+                        >
+                          <MinusCircle className="w-5 h-5" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Variable Name
+                          </label>
+                          <input
+                            type="text"
+                            value={variable.name}
+                            onChange={(e) => {
+                              const newVariables = [...formData.variables];
+                              newVariables[index] = {
+                                ...variable,
+                                name: e.target.value,
+                              };
+                              setFormData({ ...formData, variables: newVariables });
+                            }}
+                            className="w-full px-3 py-2 border rounded-lg"
+                            placeholder="e.g., subject, difficulty"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Display Name
+                          </label>
+                          <input
+                            type="text"
+                            value={variable.display_name}
+                            onChange={(e) => {
+                              const newVariables = [...formData.variables];
+                              newVariables[index] = {
+                                ...variable,
+                                display_name: e.target.value,
+                              };
+                              setFormData({ ...formData, variables: newVariables });
+                            }}
+                            className="w-full px-3 py-2 border rounded-lg"
+                            placeholder="e.g., Subject, Difficulty Level"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Description
+                        </label>
+                        <input
+                          type="text"
+                          value={variable.description}
+                          onChange={(e) => {
+                            const newVariables = [...formData.variables];
+                            newVariables[index] = {
+                              ...variable,
+                              description: e.target.value,
+                            };
+                            setFormData({ ...formData, variables: newVariables });
+                          }}
+                          className="w-full px-3 py-2 border rounded-lg"
+                          placeholder="Explain what this variable is used for"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Type
+                          </label>
+                          <select
+                            value={variable.variable_type_id}
+                            onChange={(e) => {
+                              const newVariables = [...formData.variables];
+                              newVariables[index] = {
+                                ...variable,
+                                variable_type_id: e.target.value,
+                              };
+                              setFormData({ ...formData, variables: newVariables });
+                            }}
+                            className="w-full px-3 py-2 border rounded-lg bg-white"
+                            required
+                          >
+                            {variableTypes?.map((type) => (
+                              <option key={type.id} value={type.id}>
+                                {type.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex items-end">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={variable.is_required}
+                              onChange={(e) => {
+                                const newVariables = [...formData.variables];
+                                newVariables[index] = {
+                                  ...variable,
+                                  is_required: e.target.checked,
+                                };
+                                setFormData({ ...formData, variables: newVariables });
+                              }}
+                              className="h-4 w-4 text-indigo-600 rounded border-gray-300"
+                            />
+                            <span className="text-sm text-gray-700">Required</span>
+                          </label>
+                        </div>
+                      </div>
+                      {variable.variable_type_id === 'select' && (
+                        <div className="mt-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Options
+                          </label>
+                          <select
+                            multiple
+                            value={(variable.options || '').split(',').filter(Boolean)}
+                            onChange={(e) => {
+                              const options = Array.from(e.target.selectedOptions).map(opt => opt.value);
+                              const newVariables = [...formData.variables];
+                              newVariables[index] = {
+                                ...variable,
+                                options: options.join(','),
+                              };
+                              setFormData({ ...formData, variables: newVariables });
+                            }}
+                            className="w-full px-3 py-2 border rounded-lg bg-white"
+                            size={4}
+                          >
+                            {variableOptions
+                              ?.filter(opt => opt.variable_type_id === variable.variable_type_id)
+                              .map((option) => (
+                                <option key={option.id} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="flex justify-end gap-4">
