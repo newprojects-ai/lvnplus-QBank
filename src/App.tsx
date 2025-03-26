@@ -6,7 +6,8 @@ import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
 import { Navigate } from 'react-router-dom';
 import { DashboardPage } from './pages/DashboardPage';
-import { TemplatesPage } from './pages/TemplatesPage';
+import { PromptTemplatesPage } from './pages/PromptTemplatesPage';
+import { TasksPage } from './pages/TasksPage';
 import { GeneratorPage } from './pages/GeneratorPage';
 import { ReviewerPage } from './pages/ReviewerPage';
 import { ExportPage } from './pages/ExportPage';
@@ -35,7 +36,8 @@ function App() {
               <ProtectedRoute><Layout /></ProtectedRoute>
             }>
               <Route index element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-              <Route path="templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
+              <Route path="templates" element={<ProtectedRoute><PromptTemplatesPage /></ProtectedRoute>} />
+              <Route path="tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
               <Route path="generator" element={<ProtectedRoute><GeneratorPage /></ProtectedRoute>} />
               <Route path="reviewer" element={<ProtectedRoute><ReviewerPage /></ProtectedRoute>} />
               <Route path="export" element={<ProtectedRoute><ExportPage /></ProtectedRoute>} />

@@ -5,6 +5,7 @@ import { Brain, FileText, Cog, FileCheck, Upload, LayoutDashboard, Sparkles } fr
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Templates', href: '/templates', icon: FileText },
+  { name: 'Tasks', href: '/tasks', icon: Play },
   { name: 'Generator', href: '/generator', icon: Brain },
   { name: 'Reviewer', href: '/reviewer', icon: FileCheck },
   { name: 'Export', href: '/export', icon: Upload },

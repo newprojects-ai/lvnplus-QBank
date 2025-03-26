@@ -63,9 +63,7 @@ model templates {
   subtopic_id      Int
   difficulty_value Int       @db.TinyInt @map("difficulty_value") 
   level_id         Int
-  question_format  String    @db.Text
-  options_format   String    @db.Text
-  solution_format  String    @db.Text
+  prompt_template_id String?
   example_question String?   @db.Text
   created_at       DateTime  @default(now())
   created_by       String    @db.VarChar(255)
@@ -74,12 +72,38 @@ model templates {
   topic            topics    @relation(fields: [topic_id], references: [topic_id])
   subtopic         subtopics @relation(fields: [subtopic_id], references: [subtopic_id])
   difficulty_level difficulty_levels @relation(fields: [level_id], references: [level_id])
+  prompt_template  prompt_templates? @relation(fields: [prompt_template_id], references: [id])
   batches          generation_batches[]
 
   @@index([subject_id])
   @@index([topic_id])
   @@index([subtopic_id])
   @@index([level_id])
+  @@index([prompt_template_id])
+}
+
+model prompt_templates {
+  id          String    @id @default(uuid())
+  name        String    @db.VarChar(255)
+  description String?   @db.Text
+  template_text String  @db.Text
+  variables   String    @db.Text
+  created_at  DateTime  @default(now())
+  created_by  String    @db.VarChar(255)
+  templates   templates[]
+  tasks       tasks[]
+}
+
+model tasks {
+  id                String    @id @default(uuid())
+  template_id       String
+  variable_values   String    @db.Text
+  status           String    @db.VarChar(20)
+  created_at       DateTime  @default(now())
+  completed_at     DateTime?
+  error_message    String?   @db.Text
+  
+  prompt_template   prompt_templates @relation(fields: [template_id], references: [id])
 }
 
 model generation_batches {
