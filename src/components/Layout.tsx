@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Brain, FileText, Cog, FileCheck, Upload, LayoutDashboard, Sparkles } from 'lucide-react';
+import { Brain, FileText, Cog, FileCheck, Upload, LayoutDashboard, Sparkles, Play } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
