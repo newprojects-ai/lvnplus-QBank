@@ -136,7 +136,7 @@ export function PromptTemplatesPage() {
               name: '',
               description: '',
               template_text: '',
-              variables: '{}',
+              variables: [],
             });
             setIsModalOpen(true);
           }}

@@ -16,10 +16,12 @@ import {
   getDifficultyLevels,
 } from './routes/masterData';
 import {
-  getTemplates,
-  createTemplate,
-  updateTemplate,
-  deleteTemplate,
+  getPromptTemplates,
+  createPromptTemplate,
+  updatePromptTemplate,
+  deletePromptTemplate,
+  getVariableTypes,
+  getVariableOptions,
 } from './templates';
 import { generateQuestions } from './generator';
 import {
@@ -79,11 +81,15 @@ app.get('/api/master-data/topics/:subjectId', getTopics);
 app.get('/api/master-data/subtopics/:topicId', getSubtopics);
 app.get('/api/master-data/difficulty-levels/:subjectId', getDifficultyLevels);
 
-// Templates
-app.get('/api/templates', getTemplates);
-app.post('/api/templates', createTemplate);
-app.put('/api/templates/:id', updateTemplate);
-app.delete('/api/templates/:id', deleteTemplate);
+// Prompt Templates
+app.get('/api/prompt-templates', getPromptTemplates);
+app.post('/api/prompt-templates', createPromptTemplate);
+app.put('/api/prompt-templates/:id', updatePromptTemplate);
+app.delete('/api/prompt-templates/:id', deletePromptTemplate);
+
+// Variable Types and Options
+app.get('/api/variable-types', getVariableTypes);
+app.get('/api/variable-options', getVariableOptions);
 
 // Questions
 app.post('/api/generate', generateQuestions);

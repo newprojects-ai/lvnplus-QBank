@@ -5,77 +5,145 @@ import { AuthRequest } from './middleware';
 
 const prisma = new PrismaClient();
 
-const templateSchema = z.object({
-  name: z.string().min(1),
+const variableSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  display_name: z.string(),
   description: z.string().optional(),
-  subject_id: z.number().int().positive(),
-  topic_id: z.number().int().positive(),
-  subtopic_id: z.number().int().positive(),
-  difficulty_level: z.number().min(0).max(5),
-  level_id: z.number().int().positive(),
-  question_format: z.string().min(1),
-  options_format: z.string(),
-  solution_format: z.string().min(1),
-  example_question: z.string().optional(),
+  variable_type_id: z.string(),
+  is_required: z.boolean(),
+  default_value: z.string().optional(),
+  validation_rules: z.string().optional(),
+  options: z.string().optional(),
+  sort_order: z.number(),
 });
 
-export async function getTemplates(_req: Request, res: Response) {
+const promptTemplateSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  template_text: z.string().min(1),
+  variables: z.array(variableSchema),
+});
+
+export async function getPromptTemplates(_req: Request, res: Response) {
   try {
-    const templates = await prisma.templates.findMany({
-      include: {
-        subject: true,
-        topic: true,
-        subtopic: true,
-        difficulty_level: true,
-      },
+    const templates = await prisma.prompt_templates.findMany({
       orderBy: { created_at: 'desc' },
     });
     res.json(templates);
   } catch (error) {
-    console.error('Get templates error:', error);
-    res.status(500).json({ error: 'Failed to fetch templates' });
+    console.error('Get prompt templates error:', error);
+    res.status(500).json({ error: 'Failed to fetch prompt templates' });
   }
 }
 
-export async function createTemplate(req: AuthRequest, res: Response) {
+export async function createPromptTemplate(req: AuthRequest, res: Response) {
   try {
-    const data = templateSchema.parse(req.body);
-    const template = await prisma.templates.create({
+    const data = promptTemplateSchema.parse(req.body);
+    
+    const template = await prisma.prompt_templates.create({
       data: {
-        ...data,
+        name: data.name,
+        description: data.description,
+        template_text: data.template_text,
+        variables: JSON.stringify(data.variables),
         created_by: req.user!.userId,
       },
     });
+
+    // Create template variables
+    for (const variable of data.variables) {
+      await prisma.template_variables.create({
+        data: {
+          ...variable,
+          template_id: template.id,
+        },
+      });
+    }
+
     res.json(template);
   } catch (error) {
-    console.error('Create template error:', error);
+    console.error('Create prompt template error:', error);
     res.status(400).json({ error: 'Invalid template data' });
   }
 }
 
-export async function updateTemplate(req: AuthRequest, res: Response) {
+export async function updatePromptTemplate(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
-    const data = templateSchema.parse(req.body);
+    const data = promptTemplateSchema.parse(req.body);
     
-    const template = await prisma.templates.update({
+    const template = await prisma.prompt_templates.update({
       where: { id },
-      data,
+      data: {
+        name: data.name,
+        description: data.description,
+        template_text: data.template_text,
+        variables: JSON.stringify(data.variables),
+      },
     });
+
+    // Update template variables
+    await prisma.template_variables.deleteMany({
+      where: { template_id: id },
+    });
+
+    for (const variable of data.variables) {
+      await prisma.template_variables.create({
+        data: {
+          ...variable,
+          template_id: template.id,
+        },
+      });
+    }
+
     res.json(template);
   } catch (error) {
-    console.error('Update template error:', error);
+    console.error('Update prompt template error:', error);
     res.status(400).json({ error: 'Failed to update template' });
   }
 }
 
-export async function deleteTemplate(req: Request, res: Response) {
+export async function deletePromptTemplate(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    await prisma.templates.delete({ where: { id } });
+    
+    // Delete associated variables first
+    await prisma.template_variables.deleteMany({
+      where: { template_id: id },
+    });
+
+    await prisma.prompt_templates.delete({ where: { id } });
     res.json({ success: true });
   } catch (error) {
-    console.error('Delete template error:', error);
+    console.error('Delete prompt template error:', error);
     res.status(400).json({ error: 'Failed to delete template' });
+  }
+}
+
+export async function getVariableTypes(_req: Request, res: Response) {
+  try {
+    const types = await prisma.variable_types.findMany({
+      orderBy: { name: 'asc' },
+    });
+    res.json(types);
+  } catch (error) {
+    console.error('Get variable types error:', error);
+    res.status(500).json({ error: 'Failed to fetch variable types' });
+  }
+}
+
+export async function getVariableOptions(_req: Request, res: Response) {
+  try {
+    const options = await prisma.variable_options.findMany({
+      orderBy: [
+        { variable_type_id: 'asc' },
+        { sort_order: 'asc' },
+      ],
+    });
+    res.json(options);
+  } catch (error) {
+    console.error('Get variable options error:', error);
+    res.status(500).json({ error: 'Failed to fetch variable options' });
   }
 }
