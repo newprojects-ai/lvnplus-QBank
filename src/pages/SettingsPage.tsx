@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, Settings, Zap, Server, Cpu, Variable } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { CategoryModal } from '../components/settings/CategoryModal';
+import { VariableModal } from '../components/settings/VariableModal';
 
 interface AIConfig {
   id: string;
@@ -457,7 +459,22 @@ export function SettingsPage() {
           </div>
         </div>
       </div>
-      {/* Add your modals here */}
+      {/* Category Modal */}
+      <CategoryModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        category={editingCategory}
+      />
+
+      {/* Variable Modal */}
+      {selectedCategory && (
+        <VariableModal
+          isOpen={isVariableModalOpen}
+          onClose={() => setIsVariableModalOpen(false)}
+          categoryId={selectedCategory}
+          variable={editingVariable}
+        />
+      )}
     </div>
   );
 }

@@ -80,6 +80,23 @@ QBank is a question bank generation system that uses AI to create, manage, and e
   - Subtopic
   - Difficulty Level
 
+### April 1, 2025
+- Added variable management system
+  - Variable categories with icons and colors
+  - Predefined variables for common use cases
+  - Template variable usage tracking
+  - Support for validation rules and options
+- Added default categories:
+  - General (common variables)
+  - Mathematics (equation-specific variables)
+  - Science (scientific notation, units)
+  - Language (grammar, proficiency levels)
+- Enhanced settings page with:
+  - AI configuration management
+  - Provider management
+  - Model management
+  - Variable category and definition management
+
 ## Current Features
 
 ### Authentication
@@ -133,16 +150,18 @@ QBank is a question bank generation system that uses AI to create, manage, and e
 ### Tables
 1. templates
 2. prompt_templates
-3. template_variables
-4. variable_types
-5. variable_options
-6. generation_batches
-7. generated_questions
-8. qbank_users
-9. export_logs
-10. ai_config
-11. ai_providers
-12. ai_models
+3. variable_types
+4. variable_options
+5. variable_categories
+6. variable_definitions
+7. template_variable_usage
+8. generation_batches
+9. generated_questions
+10. qbank_users
+11. export_logs
+12. ai_config
+13. ai_providers
+14. ai_models
 
 ## API Endpoints
 
@@ -164,6 +183,16 @@ QBank is a question bank generation system that uses AI to create, manage, and e
 ### Variable Management
 - GET /api/variable-types
 - GET /api/variable-options
+- GET /api/variable-categories
+- POST /api/variable-categories
+- PUT /api/variable-categories/:id
+- DELETE /api/variable-categories/:id
+- GET /api/variable-definitions/:categoryId
+- POST /api/variable-definitions
+- PUT /api/variable-definitions/:id
+- DELETE /api/variable-definitions/:id
+- GET /api/template-variables/:templateId
+- PUT /api/template-variables/:templateId
 
 ### Questions
 - POST /api/generate
