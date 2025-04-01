@@ -103,17 +103,19 @@ app.delete('/api/prompt-templates/:id', deletePromptTemplate);
 app.get('/api/variable-types', getVariableTypes);
 app.get('/api/variable-options', getVariableOptions);
 
-// Variable Management
+// Variable Categories
 app.get('/api/variable-categories', getCategories);
 app.post('/api/variable-categories', createCategory);
 app.put('/api/variable-categories/:id', updateCategory);
 app.delete('/api/variable-categories/:id', deleteCategory);
 
+// Variable Definitions
 app.get('/api/variable-definitions/:categoryId', getVariablesByCategory);
 app.post('/api/variable-definitions', createVariable);
 app.put('/api/variable-definitions/:id', updateVariable);
 app.delete('/api/variable-definitions/:id', deleteVariable);
 
+// Template Variables
 app.get('/api/template-variables/:templateId', getTemplateVariables);
 app.put('/api/template-variables/:templateId', updateTemplateVariables);
 

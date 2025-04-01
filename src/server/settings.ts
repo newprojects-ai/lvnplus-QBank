@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
+import { AuthRequest } from './middleware';
 import { DeepSeekAPI } from './ai/deepseek';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import type { AIClient } from './types';
@@ -54,10 +54,9 @@ export async function getAIConfigs(_req: Request, res: Response) {
   }
 }
 
-export async function createAIConfig(req: Request, res: Response) {
+export async function createAIConfig(req: AuthRequest, res: Response) {
   try {
     const data = aiConfigSchema.parse(req.body);
-    console.log('Creating AI config with data:', { ...data, api_key: '[REDACTED]' });
     
     if (data.is_default) {
       await prisma.ai_config.updateMany({
@@ -65,9 +64,12 @@ export async function createAIConfig(req: Request, res: Response) {
       });
     }
 
+    // Generate ID based on provider and model name
+    const id = `${data.provider}-${data.model_name}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
     const config = await prisma.ai_config.create({ 
       data: {
-        id: uuidv4(), // Generate new UUID
+        id,
         name: data.name,
         provider: data.provider,
         model_name: data.model_name,
@@ -90,6 +92,8 @@ export async function createAIConfig(req: Request, res: Response) {
 }
 
 export async function updateAIConfig(req: Request, res: Response) {
+}
+export async function updateAIConfig(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
     const data = aiConfigSchema.parse(req.body);
@@ -113,6 +117,8 @@ export async function updateAIConfig(req: Request, res: Response) {
 }
 
 export async function deleteAIConfig(req: Request, res: Response) {
+}
+export async function deleteAIConfig(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
     await prisma.ai_config.delete({ where: { id } });
@@ -124,6 +130,8 @@ export async function deleteAIConfig(req: Request, res: Response) {
 }
 
 export async function testAIConfig(req: Request, res: Response) {
+}
+export async function testAIConfig(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
     const config = await prisma.ai_config.findUnique({
@@ -193,6 +201,8 @@ export async function getAIProviders(_req: Request, res: Response) {
 }
 
 export async function createAIProvider(req: Request, res: Response) {
+}
+export async function createAIProvider(req: AuthRequest, res: Response) {
   try {
     const data = providerSchema.parse(req.body);
     const id = data.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
@@ -211,6 +221,8 @@ export async function createAIProvider(req: Request, res: Response) {
 }
 
 export async function updateAIProvider(req: Request, res: Response) {
+}
+export async function updateAIProvider(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
     const data = providerSchema.parse(req.body);
@@ -246,6 +258,8 @@ export async function getAIModels(_req: Request, res: Response) {
 }
 
 export async function createAIModel(req: Request, res: Response) {
+}
+export async function createAIModel(req: AuthRequest, res: Response) {
   try {
     const data = modelSchema.parse(req.body);
     const id = `${data.provider_id}-${data.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
@@ -264,6 +278,8 @@ export async function createAIModel(req: Request, res: Response) {
 }
 
 export async function updateAIModel(req: Request, res: Response) {
+}
+export async function updateAIModel(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
     const data = modelSchema.parse(req.body);

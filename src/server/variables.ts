@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
 import { AuthRequest } from './middleware';
 
 const prisma = new PrismaClient();
@@ -42,8 +43,11 @@ export async function getCategories(_req: Request, res: Response) {
 export async function createCategory(req: AuthRequest, res: Response) {
   try {
     const data = categorySchema.parse(req.body);
+    const id = uuidv4();
+
     const category = await prisma.variable_categories.create({
       data: {
+        id,
         ...data,
         created_by: req.user!.userId,
       },
@@ -71,8 +75,16 @@ export async function updateCategory(req: AuthRequest, res: Response) {
 }
 
 export async function deleteCategory(req: Request, res: Response) {
+}
+export async function deleteCategory(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
+    
+    // Delete all variables in this category first
+    await prisma.variable_definitions.deleteMany({
+      where: { category_id: id }
+    });
+    
     await prisma.variable_categories.delete({ where: { id } });
     res.json({ success: true });
   } catch (error) {
@@ -82,6 +94,8 @@ export async function deleteCategory(req: Request, res: Response) {
 }
 
 export async function getVariablesByCategory(req: Request, res: Response) {
+}
+export async function getVariablesByCategory(req: AuthRequest, res: Response) {
   try {
     const { categoryId } = req.params;
     const variables = await prisma.variable_definitions.findMany({
@@ -102,8 +116,11 @@ export async function getVariablesByCategory(req: Request, res: Response) {
 export async function createVariable(req: AuthRequest, res: Response) {
   try {
     const data = variableSchema.parse(req.body);
+    const id = uuidv4();
+
     const variable = await prisma.variable_definitions.create({
       data: {
+        id,
         ...data,
         created_by: req.user!.userId,
       },
@@ -131,8 +148,16 @@ export async function updateVariable(req: AuthRequest, res: Response) {
 }
 
 export async function deleteVariable(req: Request, res: Response) {
+}
+export async function deleteVariable(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
+    
+    // Delete any template usage first
+    await prisma.template_variable_usage.deleteMany({
+      where: { variable_id: id }
+    });
+    
     await prisma.variable_definitions.delete({ where: { id } });
     res.json({ success: true });
   } catch (error) {
