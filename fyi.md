@@ -96,6 +96,20 @@ QBank is a question bank generation system that uses AI to create, manage, and e
   - Provider management
   - Model management
   - Variable category and definition management
+- Added Variable Management System
+  - Created new database tables: variable_types, variable_options, variable_categories, variable_definitions, template_variable_usage
+  - Added support for variable categorization and reuse
+  - Implemented validation and default values for variables
+  - Added predefined variable types (text, textarea, number, select, multi-select, etc.)
+  - Created default variable categories (General, Mathematics, Science, Language)
+  - Added common variables for each category
+  - Created indexes for better query performance
+- Implemented Tasks Feature
+  - Added server-side API endpoints for tasks (GET, POST, DELETE)
+  - Implemented task processing with AI integration
+  - Added support for template processing with variable substitution
+  - Connected to existing AI configuration system
+  - Tasks provide a flexible way to process templates with custom variables
 
 ## Current Features
 
@@ -213,6 +227,12 @@ QBank is a question bank generation system that uses AI to create, manage, and e
 - DELETE /api/settings/ai/:id
 - POST /api/settings/ai/:id/test
 
+### Tasks
+- GET /api/tasks - Get all tasks
+- GET /api/tasks/:id - Get a specific task
+- POST /api/tasks - Create a new task
+- DELETE /api/tasks/:id - Delete a task
+
 ## Environment Configuration
 - DATABASE_URL: MariaDB connection string
 - JWT_SECRET: Secret key for JWT signing
@@ -233,4 +253,4 @@ QBank is a question bank generation system that uses AI to create, manage, and e
 - None currently reported
 
 ## Last Updated
-March 31, 2025
+April 1, 2025

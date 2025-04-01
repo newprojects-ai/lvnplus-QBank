@@ -56,6 +56,12 @@ import {
   createAIModel,
   updateAIModel
 } from './settings';
+import {
+  getTasks,
+  getTask,
+  createTask,
+  deleteTask
+} from './tasks';
 
 // Initialize express
 const app = express();
@@ -147,6 +153,12 @@ app.put('/api/settings/providers/:id', updateAIProvider);
 app.get('/api/settings/models', getAIModels);
 app.post('/api/settings/models', createAIModel);
 app.put('/api/settings/models/:id', updateAIModel);
+
+// Tasks
+app.get('/api/tasks', getTasks);
+app.get('/api/tasks/:id', getTask);
+app.post('/api/tasks', createTask);
+app.delete('/api/tasks/:id', deleteTask);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, async () => {
