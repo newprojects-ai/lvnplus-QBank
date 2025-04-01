@@ -92,8 +92,6 @@ export async function createAIConfig(req: AuthRequest, res: Response) {
 }
 
 export async function updateAIConfig(req: Request, res: Response) {
-}
-export async function updateAIConfig(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
     const data = aiConfigSchema.parse(req.body);
@@ -117,8 +115,6 @@ export async function updateAIConfig(req: AuthRequest, res: Response) {
 }
 
 export async function deleteAIConfig(req: Request, res: Response) {
-}
-export async function deleteAIConfig(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
     await prisma.ai_config.delete({ where: { id } });
@@ -130,8 +126,6 @@ export async function deleteAIConfig(req: AuthRequest, res: Response) {
 }
 
 export async function testAIConfig(req: Request, res: Response) {
-}
-export async function testAIConfig(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
     const config = await prisma.ai_config.findUnique({
@@ -201,8 +195,6 @@ export async function getAIProviders(_req: Request, res: Response) {
 }
 
 export async function createAIProvider(req: Request, res: Response) {
-}
-export async function createAIProvider(req: AuthRequest, res: Response) {
   try {
     const data = providerSchema.parse(req.body);
     const id = data.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
@@ -221,8 +213,6 @@ export async function createAIProvider(req: AuthRequest, res: Response) {
 }
 
 export async function updateAIProvider(req: Request, res: Response) {
-}
-export async function updateAIProvider(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
     const data = providerSchema.parse(req.body);
@@ -258,8 +248,6 @@ export async function getAIModels(_req: Request, res: Response) {
 }
 
 export async function createAIModel(req: Request, res: Response) {
-}
-export async function createAIModel(req: AuthRequest, res: Response) {
   try {
     const data = modelSchema.parse(req.body);
     const id = `${data.provider_id}-${data.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
@@ -278,8 +266,6 @@ export async function createAIModel(req: AuthRequest, res: Response) {
 }
 
 export async function updateAIModel(req: Request, res: Response) {
-}
-export async function updateAIModel(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
     const data = modelSchema.parse(req.body);
