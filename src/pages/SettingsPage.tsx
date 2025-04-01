@@ -141,6 +141,16 @@ export function SettingsPage() {
         <div className="flex gap-4">
           <button
             onClick={() => {
+              setEditingCategory(null);
+              setIsCategoryModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            <Variable className="w-5 h-5" />
+            Add Category
+          </button>
+          <button
+            onClick={() => {
               setEditingProvider(null);
               setIsProviderModalOpen(true);
             }}
@@ -337,16 +347,6 @@ export function SettingsPage() {
               <Variable className="w-5 h-5 text-indigo-600" />
               <h2 className="text-lg font-medium text-gray-900">Variable Categories</h2>
             </div>
-            <button
-              onClick={() => {
-                setEditingCategory(null);
-                setIsCategoryModalOpen(true);
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-            >
-              <Plus className="w-5 h-5" />
-              Add Category
-            </button>
           </div>
           <div className="space-y-4">
             {categories?.map((category) => (
@@ -355,6 +355,70 @@ export function SettingsPage() {
                   <div>
                     <h3 className="font-medium text-gray-900">{category.name}</h3>
                     <p className="text-sm text-gray-500">{category.description}</p>
+                    <div className="mt-2 space-y-2">
+                      {variables?.filter(v => v.category_id === category.id).map((variable) => (
+                        <div key={variable.id} className="pl-4 border-l-2 border-gray-200">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-700">{variable.display_name}</h4>
+                              <p className="text-xs text-gray-500">{variable.description}</p>
+                              <div className="mt-1 flex gap-2">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                  {variableTypes?.find(t => t.id === variable.variable_type_id)?.name}
+                                </span>
+                                {variable.is_required && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                    Required
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingVariable(variable);
+                                  setIsVariableModalOpen(true);
+                                }}
+                                className="p-1 text-gray-600 hover:text-indigo-600 rounded hover:bg-gray-100"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (!confirm('Are you sure you want to delete this variable?')) return;
+                                  try {
+                                    const response = await fetch(`/api/variable-definitions/${variable.id}`, {
+                                      method: 'DELETE',
+                                      headers: {
+                                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                      }
+                                    });
+                                    if (!response.ok) throw new Error('Failed to delete variable');
+                                    toast.success('Variable deleted successfully');
+                                  } catch (error) {
+                                    toast.error('Failed to delete variable');
+                                  }
+                                }}
+                                className="p-1 text-gray-600 hover:text-red-600 rounded hover:bg-gray-100"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => {
+                          setEditingVariable(null);
+                          setSelectedCategory(category.id);
+                          setIsVariableModalOpen(true);
+                        }}
+                        className="ml-4 flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Variable
+                      </button>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -367,8 +431,20 @@ export function SettingsPage() {
                       <Pencil className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={() => {
-                        // Handle delete
+                      onClick={async () => {
+                        if (!confirm('Are you sure you want to delete this category?')) return;
+                        try {
+                          const response = await fetch(`/api/variable-categories/${category.id}`, {
+                            method: 'DELETE',
+                            headers: {
+                              'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            }
+                          });
+                          if (!response.ok) throw new Error('Failed to delete category');
+                          toast.success('Category deleted successfully');
+                        } catch (error) {
+                          toast.error('Failed to delete category');
+                        }
                       }}
                       className="p-2 text-gray-600 hover:text-red-600 rounded-lg hover:bg-gray-100"
                     >
@@ -381,6 +457,7 @@ export function SettingsPage() {
           </div>
         </div>
       </div>
+      {/* Add your modals here */}
     </div>
   );
 }
