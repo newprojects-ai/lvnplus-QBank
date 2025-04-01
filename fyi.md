@@ -63,6 +63,23 @@ QBank is a question bank generation system that uses AI to create, manage, and e
 - Added configuration testing feature
 - Updated settings page with AI configuration UI
 
+### March 31, 2025
+- Enhanced prompt template management system
+- Added variable types and options support
+- Implemented structured template variables
+- Added validation for template creation
+- Improved template creation UI
+- Added support for predefined variable types:
+  - Text
+  - Text Area
+  - Number
+  - Select
+  - Multi Select
+  - Subject
+  - Topic
+  - Subtopic
+  - Difficulty Level
+
 ## Current Features
 
 ### Authentication
@@ -73,6 +90,9 @@ QBank is a question bank generation system that uses AI to create, manage, and e
 ### Template Management
 - Create, edit, delete templates
 - Template format specification
+- Structured variable management
+- Predefined variable types
+- Variable validation
 - Example question support
 - Subject/topic/subtopic organization
 
@@ -112,11 +132,17 @@ QBank is a question bank generation system that uses AI to create, manage, and e
 
 ### Tables
 1. templates
-2. generation_batches
-3. generated_questions
-4. qbank_users
-5. export_logs
-6. ai_config
+2. prompt_templates
+3. template_variables
+4. variable_types
+5. variable_options
+6. generation_batches
+7. generated_questions
+8. qbank_users
+9. export_logs
+10. ai_config
+11. ai_providers
+12. ai_models
 
 ## API Endpoints
 
@@ -128,6 +154,16 @@ QBank is a question bank generation system that uses AI to create, manage, and e
 - POST /api/templates
 - PUT /api/templates/:id
 - DELETE /api/templates/:id
+
+### Prompt Templates
+- GET /api/prompt-templates
+- POST /api/prompt-templates
+- PUT /api/prompt-templates/:id
+- DELETE /api/prompt-templates/:id
+
+### Variable Management
+- GET /api/variable-types
+- GET /api/variable-options
 
 ### Questions
 - POST /api/generate
@@ -168,4 +204,4 @@ QBank is a question bank generation system that uses AI to create, manage, and e
 - None currently reported
 
 ## Last Updated
-March 30, 2025
+March 31, 2025

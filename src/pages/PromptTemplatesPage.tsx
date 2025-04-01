@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, PlusCircle, MinusCircle } from 'lucide-react';
-import toast from 'react-hot-toast';
-
+import { Plus, Pencil, Trash2, PlusCircle, MinusCircle, Settings, Calculator, FlaskRound as Flask, BookOpen } from 'lucide-react'
 interface PromptTemplate {
   id: string;
   name: string;
