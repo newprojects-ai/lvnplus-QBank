@@ -75,8 +75,6 @@ export async function updateCategory(req: AuthRequest, res: Response) {
 }
 
 export async function deleteCategory(req: Request, res: Response) {
-}
-export async function deleteCategory(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
     
@@ -94,8 +92,6 @@ export async function deleteCategory(req: AuthRequest, res: Response) {
 }
 
 export async function getVariablesByCategory(req: Request, res: Response) {
-}
-export async function getVariablesByCategory(req: AuthRequest, res: Response) {
   try {
     const { categoryId } = req.params;
     const variables = await prisma.variable_definitions.findMany({
@@ -148,8 +144,6 @@ export async function updateVariable(req: AuthRequest, res: Response) {
 }
 
 export async function deleteVariable(req: Request, res: Response) {
-}
-export async function deleteVariable(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
     
