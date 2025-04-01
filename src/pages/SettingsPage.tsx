@@ -3,6 +3,9 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, Settings, Zap, Server, Cpu, Variable } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { ConfigModal } from '../components/settings/ConfigModal';
+import { ProviderModal } from '../components/settings/ProviderModal';
+import { ModelModal } from '../components/settings/ModelModal';
 import { CategoryModal } from '../components/settings/CategoryModal';
 import { VariableModal } from '../components/settings/VariableModal';
 
@@ -459,6 +462,27 @@ export function SettingsPage() {
           </div>
         </div>
       </div>
+      {/* Provider Modal */}
+      <ProviderModal
+        isOpen={isProviderModalOpen}
+        onClose={() => setIsProviderModalOpen(false)}
+        provider={editingProvider}
+      />
+
+      {/* Model Modal */}
+      <ModelModal
+        isOpen={isModelModalOpen}
+        onClose={() => setIsModelModalOpen(false)}
+        model={editingModel}
+      />
+
+      {/* Config Modal */}
+      <ConfigModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        config={editingConfig}
+      />
+
       {/* Category Modal */}
       <CategoryModal
         isOpen={isCategoryModalOpen}
