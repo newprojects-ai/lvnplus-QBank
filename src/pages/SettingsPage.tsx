@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Settings, Zap, Server, Cpu } from 'lucide-react';
+import { Plus, Pencil, Trash2, Settings, Zap, Server, Cpu, Variable, FolderTree } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface AIConfig {
@@ -34,13 +34,42 @@ interface AIModel {
   active: boolean;
 }
 
+interface VariableCategory {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  sort_order: number;
+}
+
+interface VariableDefinition {
+  id: string;
+  category_id: string;
+  name: string;
+  display_name: string;
+  description: string;
+  placeholder: string;
+  variable_type_id: string;
+  default_value: string;
+  validation_rules: string;
+  options: string;
+  is_required: boolean;
+  sort_order: number;
+}
+
 export function SettingsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
   const [isModelModalOpen, setIsModelModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isVariableModalOpen, setIsVariableModalOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<AIConfig | null>(null);
   const [editingProvider, setEditingProvider] = useState<AIProvider | null>(null);
   const [editingModel, setEditingModel] = useState<AIModel | null>(null);
+  const [editingCategory, setEditingCategory] = useState<VariableCategory | null>(null);
+  const [editingVariable, setEditingVariable] = useState<VariableDefinition | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     provider: 'openai',
@@ -68,6 +97,28 @@ export function SettingsPage() {
     active: true,
   });
 
+  const [categoryFormData, setCategoryFormData] = useState({
+    name: '',
+    description: '',
+    icon: 'Variable',
+    color: 'indigo',
+    sort_order: 0,
+  });
+
+  const [variableFormData, setVariableFormData] = useState({
+    category_id: '',
+    name: '',
+    display_name: '',
+    description: '',
+    placeholder: '',
+    variable_type_id: '',
+    default_value: '',
+    validation_rules: '',
+    options: '',
+    is_required: true,
+    sort_order: 0,
+  });
+
   const { data: aiModels } = useQuery({
     queryKey: ['ai-models'],
     queryFn: async () => {
@@ -78,6 +129,35 @@ export function SettingsPage() {
         }
       });
       if (!response.ok) throw new Error('Failed to fetch AI models');
+      return response.json();
+    },
+  });
+
+  const { data: categories } = useQuery<VariableCategory[]>({
+    queryKey: ['variable-categories'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/variable-categories', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch variable categories');
+      return response.json();
+    },
+  });
+
+  const { data: variables } = useQuery<VariableDefinition[]>({
+    queryKey: ['variable-definitions', selectedCategory],
+    enabled: !!selectedCategory,
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/variable-definitions/${selectedCategory}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch variables');
       return response.json();
     },
   });
@@ -242,6 +322,47 @@ export function SettingsPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
         <div className="flex gap-4">
+          <button
+            onClick={() => {
+              setEditingCategory(null);
+              setCategoryFormData({
+                name: '',
+                description: '',
+                icon: 'Variable',
+                color: 'indigo',
+                sort_order: 0,
+              });
+              setIsCategoryModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            <FolderTree className="w-5 h-5" />
+            Add Category
+          </button>
+          <button
+            onClick={() => {
+              setEditingVariable(null);
+              setVariableFormData({
+                category_id: selectedCategory || '',
+                name: '',
+                display_name: '',
+                description: '',
+                placeholder: '',
+                variable_type_id: '',
+                default_value: '',
+                validation_rules: '',
+                options: '',
+                is_required: true,
+                sort_order: 0,
+              });
+              setIsVariableModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            disabled={!selectedCategory}
+          >
+            <Variable className="w-5 h-5" />
+            Add Variable
+          </button>
           <button
             onClick={() => {
               setEditingProvider(null);
@@ -675,196 +796,75 @@ export function SettingsPage() {
         </div>
       )}
 
-      <div className="grid gap-6">
-        {/* Providers Section */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-              <Server className="w-5 h-5" />
-              AI Providers
-            </h2>
-          </div>
-          <div className="p-6 divide-y divide-gray-200">
-            {providers?.map((provider) => (
-              <div key={provider.id} className="py-4 first:pt-0 last:pb-0">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">{provider.name}</h3>
-                    <p className="text-sm text-gray-500">{provider.description}</p>
-                    {provider.api_base_url && (
-                      <p className="text-sm text-gray-500 mt-1">API: {provider.api_base_url}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setEditingProvider(provider);
-                        setProviderFormData(provider);
-                        setIsProviderModalOpen(true);
-                      }}
-                      className="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
-                    >
-                      <Pencil className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Variable Management Section */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+            <Variable className="w-5 h-5" />
+            Variable Management
+          </h2>
         </div>
-
-        {/* Models Section */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-              <Cpu className="w-5 h-5" />
-              AI Models
-            </h2>
-          </div>
-          <div className="p-6 divide-y divide-gray-200">
-            {aiModels?.map((model) => (
-              <div key={model.id} className="py-4 first:pt-0 last:pb-0">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">{model.name}</h3>
-                    <p className="text-sm text-gray-500">{model.description}</p>
-                    <div className="mt-2 flex gap-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        Max Tokens: {model.max_tokens}
-                      </span>
-                      {model.supports_functions && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Functions
-                        </span>
-                      )}
-                      {model.supports_vision && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          Vision
-                        </span>
-                      )}
+        <div className="p-6">
+          <div className="grid grid-cols-4 gap-6">
+            {/* Categories List */}
+            <div className="col-span-1 space-y-4">
+              <h3 className="text-sm font-medium text-gray-700">Categories</h3>
+              <div className="space-y-2">
+                {categories?.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.id)}
+                    className={`w-full flex items-center justify-between p-3 rounded-lg ${
+                      selectedCategory === category.id
+                        ? 'bg-indigo-50 text-indigo-700'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full bg-${category.color}-500`} />
+                      <span>{category.name}</span>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setEditingModel(model);
-                        setModelFormData(model);
-                        setIsModelModalOpen(true);
-                      }}
-                      className="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
-                    >
-                      <Pencil className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Configurations Section */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              AI Configurations
-            </h2>
-          </div>
-          <div className="p-6">
-            {aiConfigs?.map((config) => (
-              <div key={config.id} className="bg-white rounded-lg shadow p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-900">
-                      {config.name}
-                    </h2>
-                    <p className="text-sm text-gray-500">
-                      {config.provider} - {config.model_name}
-                    </p>
-                    {config.is_default && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Default
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setEditingConfig(config);
-                        setFormData({
-                          name: config.name,
-                          provider: config.provider,
-                          model_name: config.model_name,
-                          api_key: '',
-                          max_tokens: config.max_tokens,
-                          temperature: config.temperature,
-                          is_default: config.is_default,
-                        });
-                        setIsModalOpen(true);
-                      }}
-                      className="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
-                    >
-                      <Pencil className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={async () => {
-                        try {
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingCategory(category);
+                          setCategoryFormData(category);
+                          setIsCategoryModalOpen(true);
+                        }}
+                        className="p-1 text-gray-400 hover:text-indigo-600"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!confirm('Are you sure you want to delete this category?')) return;
+                          
                           const token = localStorage.getItem('token');
-                          if (!token) {
-                            toast.error('Authentication required');
-                            return;
+                          try {
+                            const response = await fetch(`/api/variable-categories/${category.id}`, {
+                              method: 'DELETE',
+                              headers: {
+                                'Authorization': `Bearer ${token}`
+                              }
+                            });
+                            if (!response.ok) throw new Error('Failed to delete category');
+                            toast.success('Category deleted');
+                          } catch (error) {
+                            toast.error('Failed to delete category');
                           }
-
-                          const response = await fetch(`/api/settings/ai/${config.id}/test`, {
-                            headers: {
-                              'Authorization': `Bearer ${token}`
-                            }
-                          });
-                      
-                          if (!response.ok) {
-                            throw new Error('Test request failed');
-                          }
-                      
-                          const data = await response.json();
-                      
-                          if (data.success) {
-                            toast.success('Configuration test successful!');
-                          } else {
-                            toast.error(data.error || 'Test failed');
-                          }
-                        } catch (error) {
-                          console.error('Test error:', error);
-                          toast.error(error instanceof Error ? error.message : 'Failed to test configuration');
-                        }
-                      }}
-                      className="p-2 text-gray-600 hover:text-yellow-600 rounded-lg hover:bg-gray-100"
-                    >
-                      <Zap className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(config.id)}
-                      className="p-2 text-gray-600 hover:text-red-600 rounded-lg hover:bg-gray-100"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Max Tokens</p>
-                    <p className="text-gray-900">{config.max_tokens}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Temperature</p>
-                    <p className="text-gray-900">{config.temperature}</p>
-                  </div>
-                </div>
+                        }}
+                        className="p-1 text-gray-400 hover:text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+            </div>
+
+            {/* Variables List */}
+            <div className="col-span-3">
+              <h3 className="text-sm font-medium text-gray-
