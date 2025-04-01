@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Settings, Zap, Server, Cpu, Variable, FolderTree, Hash } from 'lucide-react';
+import { Plus, Pencil, Trash2, Settings, Zap, Server, Cpu, Variable } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface AIConfig {
@@ -138,259 +138,247 @@ export function SettingsPage() {
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <div className="flex gap-4">
+          <button
+            onClick={() => {
+              setEditingProvider(null);
+              setIsProviderModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            <Server className="w-5 h-5" />
+            Add Provider
+          </button>
+          <button
+            onClick={() => {
+              setEditingModel(null);
+              setIsModelModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            <Cpu className="w-5 h-5" />
+            Add Model
+          </button>
+          <button
+            onClick={() => {
+              setEditingConfig(null);
+              setIsModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            <Plus className="w-5 h-5" />
+            Add Configuration
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-8">
-        {/* Sidebar Navigation */}
-        <div className="col-span-1">
-          <nav className="space-y-1">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg ${
-                !selectedCategory ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <Settings className="w-5 h-5" />
-              AI Configuration
-            </button>
-            <div className="pt-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-medium text-gray-500">Variables</h3>
-                <button
-                  onClick={() => {
-                    setEditingCategory(null);
-                    setIsCategoryModalOpen(true);
-                  }}
-                  className="p-1 text-gray-400 hover:text-indigo-600"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="space-y-1">
-                {categories?.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg ${
-                      selectedCategory === category.id
-                        ? 'bg-indigo-50 text-indigo-700'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Hash className="w-5 h-5" />
-                    {category.name}
-                  </button>
-                ))}
-              </div>
+      <div className="grid gap-6">
+        {/* AI Configurations Section */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              <Settings className="w-5 h-5 text-indigo-600" />
+              <h2 className="text-lg font-medium text-gray-900">AI Configurations</h2>
             </div>
-          </nav>
+          </div>
+          <div className="space-y-4">
+            {aiConfigs?.map((config) => (
+              <div key={config.id} className="border rounded-lg p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-medium text-gray-900">{config.name}</h3>
+                    <p className="text-sm text-gray-500">
+                      {config.provider} - {config.model_name}
+                    </p>
+                    {config.is_default && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-2">
+                        Default
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch(`/api/settings/ai/${config.id}/test`, {
+                            headers: {
+                              'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            }
+                          });
+                      
+                          if (!response.ok) {
+                            throw new Error('Test request failed');
+                          }
+                      
+                          const data = await response.json();
+                      
+                          if (data.success) {
+                            toast.success('Configuration test successful!');
+                          } else {
+                            toast.error(data.error || 'Test failed');
+                          }
+                        } catch (error) {
+                          console.error('Test error:', error);
+                          toast.error(error instanceof Error ? error.message : 'Failed to test configuration');
+                        }
+                      }}
+                      className="p-2 text-gray-600 hover:text-yellow-600 rounded-lg hover:bg-gray-100"
+                    >
+                      <Zap className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingConfig(config);
+                        setIsModalOpen(true);
+                      }}
+                      className="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
+                    >
+                      <Pencil className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Handle delete
+                      }}
+                      className="p-2 text-gray-600 hover:text-red-600 rounded-lg hover:bg-gray-100"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Main Content */}
-        <div className="col-span-3">
-          {!selectedCategory ? (
-            <div className="space-y-6">
-              {/* AI Configurations Section */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-medium text-gray-900">AI Configurations</h2>
+        {/* AI Providers Section */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              <Server className="w-5 h-5 text-indigo-600" />
+              <h2 className="text-lg font-medium text-gray-900">AI Providers</h2>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {providers?.map((provider) => (
+              <div key={provider.id} className="border rounded-lg p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-medium text-gray-900">{provider.name}</h3>
+                    <p className="text-sm text-gray-500">{provider.description}</p>
+                    {provider.api_base_url && (
+                      <p className="text-sm text-gray-500 mt-1">API: {provider.api_base_url}</p>
+                    )}
+                  </div>
                   <button
                     onClick={() => {
-                      setEditingConfig(null);
-                      setIsModalOpen(true);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Add Configuration
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  {aiConfigs?.map((config) => (
-                    <div key={config.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium text-gray-900">{config.name}</h3>
-                          <p className="text-sm text-gray-500">
-                            {config.provider} - {config.model_name}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingConfig(config);
-                              setIsModalOpen(true);
-                            }}
-                            className="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
-                          >
-                            <Pencil className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              // Handle delete
-                            }}
-                            className="p-2 text-gray-600 hover:text-red-600 rounded-lg hover:bg-gray-100"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* AI Providers Section */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-medium text-gray-900">AI Providers</h2>
-                  <button
-                    onClick={() => {
-                      setEditingProvider(null);
+                      setEditingProvider(provider);
                       setIsProviderModalOpen(true);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                    className="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
                   >
-                    <Plus className="w-5 h-5" />
-                    Add Provider
+                    <Pencil className="w-5 h-5" />
                   </button>
                 </div>
-                <div className="space-y-4">
-                  {providers?.map((provider) => (
-                    <div key={provider.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium text-gray-900">{provider.name}</h3>
-                          <p className="text-sm text-gray-500">{provider.description}</p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setEditingProvider(provider);
-                            setIsProviderModalOpen(true);
-                          }}
-                          className="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
-                        >
-                          <Pencil className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
+            ))}
+          </div>
+        </div>
 
-              {/* AI Models Section */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-medium text-gray-900">AI Models</h2>
+        {/* AI Models Section */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-5 h-5 text-indigo-600" />
+              <h2 className="text-lg font-medium text-gray-900">AI Models</h2>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {models?.map((model) => (
+              <div key={model.id} className="border rounded-lg p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-medium text-gray-900">{model.name}</h3>
+                    <p className="text-sm text-gray-500">{model.description}</p>
+                    <div className="mt-2 flex gap-2">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Max Tokens: {model.max_tokens}
+                      </span>
+                      {model.supports_functions && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Functions
+                        </span>
+                      )}
+                      {model.supports_vision && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          Vision
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   <button
                     onClick={() => {
-                      setEditingModel(null);
+                      setEditingModel(model);
                       setIsModelModalOpen(true);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                    className="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
                   >
-                    <Plus className="w-5 h-5" />
-                    Add Model
+                    <Pencil className="w-5 h-5" />
                   </button>
                 </div>
-                <div className="space-y-4">
-                  {models?.map((model) => (
-                    <div key={model.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium text-gray-900">{model.name}</h3>
-                          <p className="text-sm text-gray-500">{model.description}</p>
-                          <div className="mt-2 flex gap-2">
-                            {model.supports_functions && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Functions
-                              </span>
-                            )}
-                            {model.supports_vision && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                Vision
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setEditingModel(model);
-                            setIsModelModalOpen(true);
-                          }}
-                          className="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
-                        >
-                          <Pencil className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Variables Section */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              <Variable className="w-5 h-5 text-indigo-600" />
+              <h2 className="text-lg font-medium text-gray-900">Variable Categories</h2>
+            </div>
+            <button
+              onClick={() => {
+                setEditingCategory(null);
+                setIsCategoryModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            >
+              <Plus className="w-5 h-5" />
+              Add Category
+            </button>
+          </div>
+          <div className="space-y-4">
+            {categories?.map((category) => (
+              <div key={category.id} className="border rounded-lg p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-medium text-gray-900">{category.name}</h3>
+                    <p className="text-sm text-gray-500">{category.description}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingCategory(category);
+                        setIsCategoryModalOpen(true);
+                      }}
+                      className="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
+                    >
+                      <Pencil className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Handle delete
+                      }}
+                      className="p-2 text-gray-600 hover:text-red-600 rounded-lg hover:bg-gray-100"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Variables Section */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-medium text-gray-900">
-                    {categories?.find((c) => c.id === selectedCategory)?.name} Variables
-                  </h2>
-                  <button
-                    onClick={() => {
-                      setEditingVariable(null);
-                      setIsVariableModalOpen(true);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Add Variable
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  {variables?.map((variable) => (
-                    <div key={variable.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium text-gray-900">{variable.display_name}</h3>
-                          <p className="text-sm text-gray-500">{variable.description}</p>
-                          <div className="mt-2 flex gap-2">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {variableTypes?.find((t) => t.id === variable.variable_type_id)?.name}
-                            </span>
-                            {variable.is_required && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                Required
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingVariable(variable);
-                              setIsVariableModalOpen(true);
-                            }}
-                            className="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
-                          >
-                            <Pencil className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              // Handle delete
-                            }}
-                            className="p-2 text-gray-600 hover:text-red-600 rounded-lg hover:bg-gray-100"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
       </div>
     </div>
