@@ -3,77 +3,78 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql" // MariaDB uses the mysql provider in Prisma
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 model subjects {
-  subject_id      Int       @id @default(autoincrement())
-  subject_name    String    @unique @db.VarChar(100)
-  description     String?   @db.Text
-  topics          topics[]
-  templates       templates[]
+  subject_id        Int                 @id @default(autoincrement())
+  subject_name      String              @unique @db.VarChar(100)
+  description       String?             @db.Text
   difficulty_levels difficulty_levels[]
+  templates         templates[]
+  topics            topics[]
 }
 
 model topics {
-  topic_id     Int       @id @default(autoincrement())
-  subject_id   Int
-  topic_name   String    @db.VarChar(100)
-  description  String?   @db.Text
-  subject      subjects  @relation(fields: [subject_id], references: [subject_id])
-  subtopics    subtopics[]
-  templates    templates[]
+  topic_id    Int         @id @default(autoincrement())
+  subject_id  Int
+  topic_name  String      @db.VarChar(100)
+  description String?     @db.Text
+  subtopics   subtopics[]
+  templates   templates[]
+  subject     subjects    @relation(fields: [subject_id], references: [subject_id])
 
   @@unique([subject_id, topic_name])
 }
 
 model subtopics {
-  subtopic_id   Int       @id @default(autoincrement())
+  subtopic_id   Int         @id @default(autoincrement())
   topic_id      Int
-  subtopic_name String    @db.VarChar(100)
-  description   String?   @db.Text
-  topic         topics    @relation(fields: [topic_id], references: [topic_id])
+  subtopic_name String      @db.VarChar(100)
+  description   String?     @db.Text
+  topic         topics      @relation(fields: [topic_id], references: [topic_id])
   templates     templates[]
 
   @@unique([topic_id, subtopic_name])
 }
 
 model difficulty_levels {
-  level_id        Int       @id @default(autoincrement())
-  level_name      String    @unique @db.VarChar(50)
-  level_value     Int       @unique
+  level_id        Int         @id @default(autoincrement())
+  level_name      String      @unique @db.VarChar(50)
+  level_value     Int         @unique
   subject_id      Int
-  purpose         String    @db.Text
-  characteristics String    @db.Text
-  focus_area      String    @db.Text
-  steps_required  String?   @db.VarChar(50)
-  created_at      DateTime  @default(now()) @db.Timestamp(0)
-  active          Boolean   @default(true) @db.TinyInt
-  subject         subjects  @relation(fields: [subject_id], references: [subject_id])
+  purpose         String      @db.Text
+  characteristics String      @db.Text
+  focus_area      String      @db.Text
+  steps_required  String?     @db.VarChar(50)
+  created_at      DateTime    @default(now()) @db.Timestamp(0)
+  active          Boolean     @default(true)
+  subject         subjects    @relation(fields: [subject_id], references: [subject_id])
   templates       templates[]
+
+  @@index([subject_id], map: "difficulty_levels_subject_id_fkey")
 }
 
 model templates {
-  id               String    @id @default(uuid())
-  name             String    @db.VarChar(255)
-  description      String?   @db.Text
-  subject_id       Int
-  topic_id         Int
-  subtopic_id      Int
-  difficulty_value Int       @db.TinyInt @map("difficulty_value") 
-  level_id         Int
+  id                 String               @id @default(uuid())
+  name               String               @db.VarChar(255)
+  description        String?              @db.Text
+  example_question   String?              @db.Text
+  created_at         DateTime             @default(now())
+  created_by         String               @db.VarChar(255)
+  difficulty_value   Int                  @map("difficulty_value") @db.TinyInt
+  level_id           Int
+  subject_id         Int
+  subtopic_id        Int
+  topic_id           Int
   prompt_template_id String?
-  example_question String?   @db.Text
-  created_at       DateTime  @default(now())
-  created_by       String    @db.VarChar(255)
-  
-  subject          subjects  @relation(fields: [subject_id], references: [subject_id])
-  topic            topics    @relation(fields: [topic_id], references: [topic_id])
-  subtopic         subtopics @relation(fields: [subtopic_id], references: [subtopic_id])
-  difficulty_level difficulty_levels @relation(fields: [level_id], references: [level_id])
-  prompt_template  prompt_templates? @relation(fields: [prompt_template_id], references: [id])
-  batches          generation_batches[]
+  batches            generation_batches[]
+  difficulty_level   difficulty_levels    @relation(fields: [level_id], references: [level_id])
+  prompt_template    prompt_templates?    @relation(fields: [prompt_template_id], references: [id])
+  subject            subjects             @relation(fields: [subject_id], references: [subject_id])
+  subtopic           subtopics            @relation(fields: [subtopic_id], references: [subtopic_id])
+  topic              topics               @relation(fields: [topic_id], references: [topic_id])
 
   @@index([subject_id])
   @@index([topic_id])
@@ -83,69 +84,73 @@ model templates {
 }
 
 model prompt_templates {
-  id          String    @id @default(uuid())
-  name        String    @db.VarChar(255)
-  description String?   @db.Text
-  template_text String  @db.Text
-  variables   String    @db.Text
-  created_at  DateTime  @default(now())
-  created_by  String    @db.VarChar(255)
-  templates   templates[]
-  tasks       tasks[]
+  id                      String                    @id @default(uuid())
+  name                    String                    @db.VarChar(255)
+  description             String?                   @db.Text
+  template_text           String                    @db.Text
+  variables               String                    @db.Text
+  created_at              DateTime                  @default(now())
+  created_by              String                    @db.VarChar(255)
+  tasks                   tasks[]
+  template_variable_usage template_variable_usage[]
+  templates               templates[]
 }
 
 model tasks {
-  id                String    @id @default(uuid())
-  template_id       String
-  variable_values   String    @db.Text
-  status           String    @db.VarChar(20)
-  created_at       DateTime  @default(now())
-  completed_at     DateTime?
-  error_message    String?   @db.Text
-  
-  prompt_template   prompt_templates @relation(fields: [template_id], references: [id])
+  id              String           @id @default(uuid())
+  template_id     String
+  variable_values String           @db.Text
+  status          String           @db.VarChar(20)
+  created_at      DateTime         @default(now())
+  completed_at    DateTime?
+  error_message   String?          @db.Text
+  prompt_template prompt_templates @relation(fields: [template_id], references: [id])
+
+  @@index([template_id], map: "tasks_template_id_fkey")
 }
 
 model generation_batches {
-  id               String    @id @default(uuid())
+  id               String                @id @default(uuid())
   template_id      String
   count            Int
-  difficulty_level Int       @db.TinyInt
-  status           String    @db.VarChar(20)
-  created_at       DateTime  @default(now())
+  difficulty_level Int                   @db.TinyInt
+  status           String                @db.VarChar(20)
+  created_at       DateTime              @default(now())
   completed_at     DateTime?
-  error_message    String?   @db.Text
-  ai_model         String    @default("gpt-4") @db.VarChar(50)
-  ai_temperature   Float     @default(0.7)
-  
-  template         templates @relation(fields: [template_id], references: [id])
-  questions        generated_questions[]
+  error_message    String?               @db.Text
+  ai_model         String                @default("gpt-4") @db.VarChar(50)
+  ai_temperature   Float                 @default(0.7)
   export_logs      export_logs[]
+  questions        generated_questions[]
+  template         templates             @relation(fields: [template_id], references: [id])
+
+  @@index([template_id], map: "generation_batches_template_id_fkey")
 }
 
 model generated_questions {
-  id                  String    @id @default(uuid())
-  batch_id            String
-  subject_name        String    @db.VarChar(100)
-  topic_name          String    @db.VarChar(100)
-  subtopic_name       String    @db.VarChar(100)
-  question_text       String    @db.Text
-  question_text_plain String    @db.Text
-  options             String    @db.Text
-  options_plain       String    @db.Text
-  correct_answer      String    @db.VarChar(255)
-  correct_answer_plain String   @db.VarChar(255)
-  solution            String    @db.Text
-  solution_plain      String    @db.Text
-  difficulty_level    Int       @db.TinyInt
-  created_at          DateTime  @default(now())
-  created_by          String    @db.VarChar(255)
-  status              String    @db.VarChar(20)
-  export_status       String?   @db.VarChar(20)
-  export_error        String?   @db.Text
-  lvnplus_question_id BigInt?
-  
-  batch               generation_batches @relation(fields: [batch_id], references: [id])
+  id                   String             @id @default(uuid())
+  batch_id             String
+  subject_name         String             @db.VarChar(100)
+  topic_name           String             @db.VarChar(100)
+  subtopic_name        String             @db.VarChar(100)
+  question_text        String             @db.Text
+  question_text_plain  String             @db.Text
+  options              String             @db.Text
+  options_plain        String             @db.Text
+  correct_answer       String             @db.VarChar(255)
+  correct_answer_plain String             @db.VarChar(255)
+  solution             String             @db.Text
+  solution_plain       String             @db.Text
+  difficulty_level     Int                @db.TinyInt
+  created_at           DateTime           @default(now())
+  created_by           String             @db.VarChar(255)
+  status               String             @db.VarChar(20)
+  export_status        String?            @db.VarChar(20)
+  export_error         String?            @db.Text
+  lvnplus_question_id  BigInt?
+  batch                generation_batches @relation(fields: [batch_id], references: [id])
+
+  @@index([batch_id], map: "generated_questions_batch_id_fkey")
 }
 
 model qbank_users {
@@ -158,62 +163,138 @@ model qbank_users {
 }
 
 model export_logs {
-  id                  String    @id @default(uuid())
-  batch_id            String?
-  question_ids        String    @db.Text
-  status              String    @db.VarChar(20)
-  export_time         DateTime  @default(now())
-  rollback_time       DateTime?
-  error_message       String?   @db.Text
-  lvnplus_question_ids String?  @db.Text
-  
-  batch               generation_batches? @relation(fields: [batch_id], references: [id])
+  id                   String              @id @default(uuid())
+  batch_id             String?
+  question_ids         String              @db.Text
+  status               String              @db.VarChar(20)
+  export_time          DateTime            @default(now())
+  rollback_time        DateTime?
+  error_message        String?             @db.Text
+  lvnplus_question_ids String?             @db.Text
+  batch                generation_batches? @relation(fields: [batch_id], references: [id])
+
+  @@index([batch_id], map: "export_logs_batch_id_fkey")
 }
 
 model ai_config {
-  id           String   @id @default(uuid())
-  name         String   @db.VarChar(255)
-  provider     String   @db.VarChar(20)
-  model_name   String   @db.VarChar(50)
-  api_key      String   @db.VarChar(255)
-  max_tokens   Int      @default(1000)
-  temperature  Float    @default(0.7)
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
-  is_default   Boolean  @default(false)
-  model_id     String?
-  model        ai_models? @relation(fields: [model_id], references: [id])
-  max_length   Int?     @default(2048)
-  top_p        Float?   @default(0.9)
-  top_k        Int?     @default(50)
-  frequency_penalty Float? @default(0.0)
-  presence_penalty Float? @default(0.0)
-  stop_sequences String? @default("[]")
-  system_prompt String? @db.Text
+  id                String     @id @default(uuid())
+  provider          String     @db.VarChar(20)
+  api_key           String     @db.VarChar(255)
+  max_tokens        Int        @default(1000)
+  temperature       Float      @default(0.7)
+  created_at        DateTime   @default(now())
+  updated_at        DateTime   @updatedAt
+  is_default        Boolean    @default(false)
+  name              String     @db.VarChar(255)
+  frequency_penalty Float?     @default(0)
+  max_length        Int?       @default(2048)
+  model_id          String?
+  model_name        String     @db.VarChar(50)
+  presence_penalty  Float?     @default(0)
+  stop_sequences    String?    @default("[]")
+  system_prompt     String?    @db.Text
+  top_k             Int?       @default(50)
+  top_p             Float?     @default(0.9)
+  model             ai_models? @relation(fields: [model_id], references: [id])
+
+  @@index([model_id], map: "ai_config_model_id_fkey")
 }
 
 model ai_providers {
-  id           String   @id @db.VarChar(50)
-  name         String   @db.VarChar(100)
-  description  String?  @db.Text
-  api_base_url String?  @db.VarChar(255)
-  created_at   DateTime @default(now())
-  active       Boolean  @default(true)
+  id           String      @id @db.VarChar(50)
+  name         String      @db.VarChar(100)
+  description  String?     @db.Text
+  api_base_url String?     @db.VarChar(255)
+  created_at   DateTime    @default(now())
+  active       Boolean     @default(true)
   models       ai_models[]
 }
 
 model ai_models {
-  id                String   @id @db.VarChar(50)
-  provider_id       String   @db.VarChar(50)
-  name             String   @db.VarChar(100)
-  description      String?  @db.Text
-  max_tokens       Int      @default(2048)
-  supports_functions Boolean @default(false)
-  supports_vision   Boolean @default(false)
-  created_at       DateTime @default(now())
-  active           Boolean  @default(true)
-  provider         ai_providers @relation(fields: [provider_id], references: [id])
-  configs          ai_config[]
+  id                 String       @id @db.VarChar(50)
+  provider_id        String       @db.VarChar(50)
+  name               String       @db.VarChar(100)
+  description        String?      @db.Text
+  max_tokens         Int          @default(2048)
+  supports_functions Boolean      @default(false)
+  supports_vision    Boolean      @default(false)
+  created_at         DateTime     @default(now())
+  active             Boolean      @default(true)
+  configs            ai_config[]
+  provider           ai_providers @relation(fields: [provider_id], references: [id])
 
   @@unique([provider_id, name])
+}
+
+model template_variable_usage {
+  id                   String               @id @db.VarChar(36)
+  template_id          String
+  variable_id          String               @db.VarChar(36)
+  sort_order           Int                  @default(0)
+  created_at           DateTime             @default(now())
+  prompt_templates     prompt_templates     @relation(fields: [template_id], references: [id])
+  variable_definitions variable_definitions @relation(fields: [variable_id], references: [id])
+
+  @@unique([template_id, variable_id])
+  @@index([template_id], map: "idx_template_variable_usage_template")
+  @@index([variable_id], map: "idx_template_variable_usage_variable")
+}
+
+model variable_categories {
+  id                   String                 @id @db.VarChar(36)
+  name                 String                 @db.VarChar(100)
+  description          String?                @db.Text
+  icon                 String?                @db.VarChar(50)
+  color                String?                @db.VarChar(20)
+  sort_order           Int                    @default(0)
+  created_at           DateTime               @default(now())
+  created_by           String                 @db.VarChar(255)
+  variable_definitions variable_definitions[]
+}
+
+model variable_definitions {
+  id                      String                    @id @db.VarChar(36)
+  category_id             String                    @db.VarChar(36)
+  name                    String                    @db.VarChar(100)
+  display_name            String                    @db.VarChar(255)
+  description             String?                   @db.Text
+  placeholder             String?                   @db.Text
+  variable_type_id        String                    @db.VarChar(50)
+  default_value           String?                   @db.Text
+  validation_rules        String?                   @db.Text
+  options                 String?                   @db.Text
+  is_required             Boolean                   @default(true)
+  sort_order              Int                       @default(0)
+  created_at              DateTime                  @default(now())
+  created_by              String                    @db.VarChar(255)
+  template_variable_usage template_variable_usage[]
+  variable_categories     variable_categories       @relation(fields: [category_id], references: [id])
+  variable_types          variable_types            @relation(fields: [variable_type_id], references: [id])
+
+  @@index([category_id], map: "idx_variable_definitions_category")
+  @@index([variable_type_id], map: "variable_definitions_variable_type_id_fkey")
+}
+
+model variable_options {
+  id               String         @id @db.VarChar(36)
+  variable_type_id String         @db.VarChar(50)
+  value            String         @db.VarChar(255)
+  label            String         @db.VarChar(255)
+  description      String?        @db.Text
+  sort_order       Int            @default(0)
+  created_at       DateTime       @default(now())
+  variable_types   variable_types @relation(fields: [variable_type_id], references: [id])
+
+  @@index([variable_type_id], map: "idx_variable_options_type")
+}
+
+model variable_types {
+  id                   String                 @id @db.VarChar(50)
+  name                 String                 @db.VarChar(100)
+  description          String?                @db.Text
+  has_options          Boolean                @default(false)
+  validation_rules     String?                @db.Text
+  created_at           DateTime               @default(now())
+  variable_definitions variable_definitions[]
+  variable_options     variable_options[]
 }

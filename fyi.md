@@ -99,17 +99,23 @@ QBank is a question bank generation system that uses AI to create, manage, and e
 - Added Variable Management System
   - Created new database tables: variable_types, variable_options, variable_categories, variable_definitions, template_variable_usage
   - Added support for variable categorization and reuse
-  - Implemented validation and default values for variables
-  - Added predefined variable types (text, textarea, number, select, multi-select, etc.)
-  - Created default variable categories (General, Mathematics, Science, Language)
-  - Added common variables for each category
-  - Created indexes for better query performance
 - Implemented Tasks Feature
   - Added server-side API endpoints for tasks (GET, POST, DELETE)
   - Implemented task processing with AI integration
   - Added support for template processing with variable substitution
   - Connected to existing AI configuration system
   - Tasks provide a flexible way to process templates with custom variables
+
+### April 2, 2025
+- Implemented minimalistic version of the variables functionality
+  - Simplified the TasksPage.tsx to focus on specific variables from the sample task configuration
+  - Updated the templates.ts file to handle basic variable extraction from template text
+  - Modified the tasks.ts file to process tasks with the specific variables
+  - Implemented validation for the required variables (topic, subtopic, total_questions)
+  - Added support for optional variables (difficulty_distribution, katex_style)
+  - Simplified the UI to focus on the core variables needed for task creation
+  - Fixed TypeScript errors and improved error handling
+  - Updated routes in index.ts to match the simplified implementation
 
 ## Current Features
 
@@ -253,4 +259,4 @@ QBank is a question bank generation system that uses AI to create, manage, and e
 - None currently reported
 
 ## Last Updated
-April 1, 2025
+April 2, 2025

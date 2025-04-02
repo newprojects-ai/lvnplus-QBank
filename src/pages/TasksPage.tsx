@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Play, AlertCircle, Info } from 'lucide-react';
+import { Plus, Play, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface PromptTemplate {
@@ -9,7 +9,6 @@ interface PromptTemplate {
   description: string;
   template_text: string;
   variables: any[];
-  extracted_variables: string[];
 }
 
 interface Task {
@@ -25,7 +24,15 @@ interface Task {
 
 interface FormData {
   template_id: string;
-  variable_values: Record<string, any>;
+  variable_values: {
+    topic?: string;
+    subtopic?: string;
+    total_questions?: number;
+    difficulty_distribution?: Record<string, number>;
+    katex_style?: string;
+    subject?: string;
+    [key: string]: any;
+  };
 }
 
 export function TasksPage() {
@@ -33,9 +40,14 @@ export function TasksPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [formData, setFormData] = useState<FormData>({
     template_id: '',
-    variable_values: {},
+    variable_values: {
+      topic: '',
+      subtopic: '',
+      total_questions: 10,
+      difficulty_distribution: { level_1: 5, level_2: 3, level_3: 2 },
+      katex_style: 'minimal',
+    },
   });
-  const [processedTemplate, setProcessedTemplate] = useState<string>('');
 
   const { data: templates } = useQuery<PromptTemplate[]>({
     queryKey: ['prompt-templates'],
@@ -56,50 +68,9 @@ export function TasksPage() {
   });
 
   const selectedTemplateData = templates?.find(t => t.id === selectedTemplate);
-  
-  // Process the template with variable values to show a preview
-  useEffect(() => {
-    if (!selectedTemplateData) {
-      setProcessedTemplate('');
-      return;
-    }
-    
-    let previewText = selectedTemplateData.template_text;
-    
-    // Replace variables with their values or highlight missing ones
-    Object.entries(formData.variable_values).forEach(([key, value]) => {
-      const placeholder = `{${key}}`;
-      previewText = previewText.replace(new RegExp(placeholder, 'g'), String(value));
-    });
-    
-    // Highlight remaining variables that haven't been filled
-    selectedTemplateData.extracted_variables.forEach(varName => {
-      if (!formData.variable_values[varName]) {
-        const placeholder = `{${varName}}`;
-        previewText = previewText.replace(
-          new RegExp(placeholder, 'g'), 
-          `<span class="bg-yellow-100 text-yellow-800 px-1 rounded">${placeholder}</span>`
-        );
-      }
-    });
-    
-    setProcessedTemplate(previewText);
-  }, [selectedTemplateData, formData.variable_values]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate that all required variables have values
-    if (selectedTemplateData) {
-      const missingVariables = selectedTemplateData.extracted_variables.filter(
-        varName => !formData.variable_values[varName]
-      );
-      
-      if (missingVariables.length > 0) {
-        toast.error(`Please fill in all variables: ${missingVariables.join(', ')}`);
-        return;
-      }
-    }
     
     try {
       const response = await fetch('/api/tasks', {
@@ -121,27 +92,6 @@ export function TasksPage() {
     }
   };
 
-  // Determine the input type for a variable based on its name and value
-  const getInputTypeForVariable = (varName: string, currentValue: any) => {
-    // Check if it's a JSON object (for things like difficulty_distribution)
-    if (varName.includes('distribution') || varName.includes('config') || varName.includes('options')) {
-      return 'json';
-    }
-    
-    // Check if it's a number
-    if (varName.includes('count') || varName.includes('total') || varName === 'level') {
-      return 'number';
-    }
-    
-    // Check if the current value is a number
-    if (typeof currentValue === 'number') {
-      return 'number';
-    }
-    
-    // Default to text
-    return 'text';
-  };
-
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
@@ -151,7 +101,13 @@ export function TasksPage() {
             setSelectedTemplate('');
             setFormData({
               template_id: '',
-              variable_values: {},
+              variable_values: {
+                topic: '',
+                subtopic: '',
+                total_questions: 10,
+                difficulty_distribution: { level_1: 5, level_2: 3, level_3: 2 },
+                katex_style: 'minimal',
+              },
             });
             setIsModalOpen(true);
           }}
@@ -210,7 +166,7 @@ export function TasksPage() {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-gray-900">New Task</h2>
@@ -230,32 +186,11 @@ export function TasksPage() {
                 <select
                   value={selectedTemplate}
                   onChange={(e) => {
-                    const templateId = e.target.value;
-                    setSelectedTemplate(templateId);
-                    
-                    // Reset variable values when template changes
+                    setSelectedTemplate(e.target.value);
                     setFormData({
-                      template_id: templateId,
-                      variable_values: {},
+                      ...formData,
+                      template_id: e.target.value,
                     });
-                    
-                    // Pre-populate with default values if available
-                    const template = templates?.find(t => t.id === templateId);
-                    if (template && template.variables) {
-                      const defaultValues: Record<string, any> = {};
-                      template.variables.forEach(v => {
-                        if (v.default_value) {
-                          defaultValues[v.name] = v.default_value;
-                        }
-                      });
-                      
-                      if (Object.keys(defaultValues).length > 0) {
-                        setFormData({
-                          template_id: templateId,
-                          variable_values: defaultValues,
-                        });
-                      }
-                    }
                   }}
                   className="w-full px-3 py-2 border rounded-lg bg-white"
                   required
@@ -273,91 +208,162 @@ export function TasksPage() {
                 <div className="space-y-6">
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h3 className="text-sm font-medium text-gray-700 mb-2">Template Preview</h3>
-                    <div 
-                      className="text-sm text-gray-600 whitespace-pre-wrap"
-                      dangerouslySetInnerHTML={{ __html: processedTemplate }}
-                    />
+                    <pre className="text-sm text-gray-600 whitespace-pre-wrap">
+                      {selectedTemplateData.template_text}
+                    </pre>
                   </div>
 
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-sm font-medium text-gray-700">Variables</h3>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Info className="w-4 h-4 mr-1" />
-                        <span>Fill in values for all variables in the template</span>
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-gray-700">Variables</h3>
+                    
+                    {/* Topic */}
+                    <div className="bg-white border rounded-lg p-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Topic
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.variable_values.topic || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          variable_values: {
+                            ...formData.variable_values,
+                            topic: e.target.value,
+                          },
+                        })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        placeholder="e.g., Geometry"
+                        required
+                      />
+                    </div>
+                    
+                    {/* Subtopic */}
+                    <div className="bg-white border rounded-lg p-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Subtopic
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.variable_values.subtopic || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          variable_values: {
+                            ...formData.variable_values,
+                            subtopic: e.target.value,
+                          },
+                        })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        placeholder="e.g., Area"
+                        required
+                      />
+                    </div>
+                    
+                    {/* Total Questions */}
+                    <div className="bg-white border rounded-lg p-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Total Questions
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.variable_values.total_questions || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          variable_values: {
+                            ...formData.variable_values,
+                            total_questions: parseInt(e.target.value),
+                          },
+                        })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        placeholder="e.g., 20"
+                        min="1"
+                        max="50"
+                        required
+                      />
+                    </div>
+                    
+                    {/* Difficulty Distribution */}
+                    <div className="bg-white border rounded-lg p-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Difficulty Distribution
+                      </label>
+                      <div className="grid grid-cols-2 gap-4">
+                        {[0, 1, 2, 3, 4, 5].map((level) => (
+                          <div key={level} className="flex items-center">
+                            <label className="block text-sm text-gray-700 mr-2 w-24">
+                              Level {level}:
+                            </label>
+                            <input
+                              type="number"
+                              value={formData.variable_values.difficulty_distribution?.[`level_${level}`] || 0}
+                              onChange={(e) => {
+                                const newDistribution = {
+                                  ...formData.variable_values.difficulty_distribution,
+                                  [`level_${level}`]: parseInt(e.target.value) || 0,
+                                };
+                                
+                                // Remove levels with 0 questions
+                                if (parseInt(e.target.value) === 0) {
+                                  delete newDistribution[`level_${level}`];
+                                }
+                                
+                                setFormData({
+                                  ...formData,
+                                  variable_values: {
+                                    ...formData.variable_values,
+                                    difficulty_distribution: newDistribution,
+                                  },
+                                });
+                              }}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              min="0"
+                              max="50"
+                            />
+                          </div>
+                        ))}
                       </div>
                     </div>
                     
-                    <div className="space-y-4">
-                      {selectedTemplateData.extracted_variables.map((varName) => {
-                        const inputType = getInputTypeForVariable(
-                          varName, 
-                          formData.variable_values[varName]
-                        );
-                        
-                        return (
-                          <div key={varName} className="bg-white border rounded-lg p-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              {varName.charAt(0).toUpperCase() + varName.slice(1).replace(/_/g, ' ')}
-                            </label>
-                            
-                            {inputType === 'json' ? (
-                              <textarea
-                                value={
-                                  typeof formData.variable_values[varName] === 'object'
-                                    ? JSON.stringify(formData.variable_values[varName], null, 2)
-                                    : formData.variable_values[varName] || ''
-                                }
-                                onChange={(e) => {
-                                  try {
-                                    // Try to parse as JSON if possible
-                                    const value = JSON.parse(e.target.value);
-                                    setFormData({
-                                      ...formData,
-                                      variable_values: {
-                                        ...formData.variable_values,
-                                        [varName]: value,
-                                      },
-                                    });
-                                  } catch {
-                                    // If not valid JSON, store as string
-                                    setFormData({
-                                      ...formData,
-                                      variable_values: {
-                                        ...formData.variable_values,
-                                        [varName]: e.target.value,
-                                      },
-                                    });
-                                  }
-                                }}
-                                className="w-full px-3 py-2 border rounded-lg font-mono text-sm"
-                                rows={4}
-                                placeholder={`{"key": "value"}`}
-                              />
-                            ) : (
-                              <input
-                                type={inputType}
-                                value={formData.variable_values[varName] || ''}
-                                onChange={(e) => {
-                                  const value = inputType === 'number' 
-                                    ? Number(e.target.value) 
-                                    : e.target.value;
-                                    
-                                  setFormData({
-                                    ...formData,
-                                    variable_values: {
-                                      ...formData.variable_values,
-                                      [varName]: value,
-                                    },
-                                  });
-                                }}
-                                className="w-full px-3 py-2 border rounded-lg"
-                                placeholder={`Enter ${varName.replace(/_/g, ' ')}`}
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
+                    {/* KaTeX Style */}
+                    <div className="bg-white border rounded-lg p-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        KaTeX Style
+                      </label>
+                      <select
+                        value={formData.variable_values.katex_style || 'minimal'}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          variable_values: {
+                            ...formData.variable_values,
+                            katex_style: e.target.value,
+                          },
+                        })}
+                        className="w-full px-3 py-2 border rounded-lg bg-white"
+                        required
+                      >
+                        <option value="minimal">Minimal</option>
+                        <option value="standard">Standard</option>
+                        <option value="detailed">Detailed</option>
+                      </select>
+                    </div>
+                    
+                    {/* Subject (if needed) */}
+                    <div className="bg-white border rounded-lg p-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Subject
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.variable_values.subject || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          variable_values: {
+                            ...formData.variable_values,
+                            subject: e.target.value,
+                          },
+                        })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        placeholder="e.g., Mathematics"
+                      />
                     </div>
                   </div>
                 </div>
