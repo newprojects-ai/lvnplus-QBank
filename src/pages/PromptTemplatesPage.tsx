@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, PlusCircle, MinusCircle, Tag } from 'lucide-react';
+import { Plus, Pencil, Trash2, Tag } from 'lucide-react';
 import toast from 'react-hot-toast';
-import * as crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 
 interface PromptTemplate {
   id: string;
@@ -103,7 +103,7 @@ const predefinedVariables = [
     description: 'The style of KaTeX rendering',
     variable_type_id: 'text',
     is_required: false,
-  },
+  }
 ];
 
 export function PromptTemplatesPage() {
@@ -117,10 +117,19 @@ export function PromptTemplatesPage() {
   });
   const [selectedVariables, setSelectedVariables] = useState<string[]>([]);
 
+  // Retrieve token from local storage
+  const token = localStorage.getItem('auth_token');
+
   const { data: variableTypes } = useQuery<VariableType[]>({
     queryKey: ['variable-types'],
     queryFn: async () => {
-      const response = await fetch('/api/variable-types');
+      if (!token) {
+        toast.error("Authentication token not found.");
+        throw new Error('Authentication token not found');
+      }
+      const response = await fetch('/api/variable-types', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (!response.ok) throw new Error('Failed to fetch variable types');
       return response.json();
     },
@@ -129,7 +138,13 @@ export function PromptTemplatesPage() {
   const { data: variableOptions } = useQuery<VariableOption[]>({
     queryKey: ['variable-options'],
     queryFn: async () => {
-      const response = await fetch('/api/variable-options');
+      if (!token) {
+        toast.error("Authentication token not found.");
+        throw new Error('Authentication token not found');
+      }
+      const response = await fetch('/api/variable-options', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (!response.ok) throw new Error('Failed to fetch variable options');
       return response.json();
     },
@@ -138,7 +153,13 @@ export function PromptTemplatesPage() {
   const { data: templates, refetch } = useQuery<PromptTemplate[]>({
     queryKey: ['prompt-templates'],
     queryFn: async () => {
-      const response = await fetch('/api/prompt-templates');
+      if (!token) {
+        toast.error("Authentication token not found.");
+        throw new Error('Authentication token not found');
+      }
+      const response = await fetch('/api/prompt-templates', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (!response.ok) throw new Error('Failed to fetch templates');
       return response.json();
     },
@@ -148,7 +169,13 @@ export function PromptTemplatesPage() {
   const { data: subjects } = useQuery({
     queryKey: ['subjects'],
     queryFn: async () => {
-      const response = await fetch('/api/master-data/subjects');
+      if (!token) {
+        toast.error("Authentication token not found.");
+        throw new Error('Authentication token not found');
+      }
+      const response = await fetch('/api/master-data/subjects', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (!response.ok) throw new Error('Failed to fetch subjects');
       return response.json();
     },
@@ -161,7 +188,7 @@ export function PromptTemplatesPage() {
       if (!predefined) return null;
       
       return {
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         name: predefined.name,
         display_name: predefined.display_name,
         description: predefined.description,
@@ -206,12 +233,22 @@ export function PromptTemplatesPage() {
     e.preventDefault();
     try {
       console.log('Submitting template data:', formData);
+      console.log('Sending template text to backend:', JSON.stringify(formData.template_text));
+      
+      // Ensure token is checked before mutation
+      if (!token) {
+        toast.error("Authentication token not found. Cannot save template.");
+        return; // Prevent mutation if no token
+      }
       
       const response = await fetch(
         editingTemplate ? `/api/prompt-templates/${editingTemplate.id}` : '/api/prompt-templates',
         {
           method: editingTemplate ? 'PUT' : 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify(formData),
         }
       );
@@ -237,15 +274,29 @@ export function PromptTemplatesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this template?')) return;
 
+    // Ensure token is checked before mutation
+    if (!token) {
+      toast.error("Authentication token not found. Cannot delete template.");
+      return; // Prevent mutation if no token
+    }
+    
     try {
       const response = await fetch(`/api/prompt-templates/${id}`, {
         method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (!response.ok) throw new Error('Failed to delete template');
+      if (!response.ok) {
+        if (response.status === 401) {
+          toast.error("Unauthorized. Could not delete template.");
+        } else {
+          toast.error(`Error deleting template: ${response.statusText}`);
+        }
+        throw new Error('Failed to delete template');
+      }
 
-      refetch();
-      toast.success('Template deleted');
+      toast.success('Template deleted successfully!');
+      refetch(); // Refetch the templates list
     } catch (error) {
       toast.error('Failed to delete template');
     }
@@ -311,11 +362,14 @@ export function PromptTemplatesPage() {
             <div className="space-y-4">
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-2">Template Text</h3>
-                <pre className="bg-gray-50 p-4 rounded-lg text-sm overflow-x-auto whitespace-pre-wrap">
-                  {template.template_text.replace(/{([^{}]+)}/g, (match) => (
-                    `<span class="bg-indigo-100 text-indigo-800 px-1 rounded">${match}</span>`
-                  ))}
-                </pre>
+                <pre 
+                  className="bg-gray-50 p-4 rounded-lg text-sm overflow-x-auto whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{ 
+                    __html: template.template_text.replace(/{([^{}]+)}/g, (match) => 
+                      `<span class="bg-indigo-100 text-indigo-800 px-1 rounded">${match}</span>`
+                    )
+                  }}
+                />
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-2">Variables</h3>

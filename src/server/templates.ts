@@ -68,6 +68,7 @@ export async function getTemplateById(req: Request, res: Response) {
 // Create a new template
 export async function createTemplate(req: Request, res: Response) {
   console.log('Create template request body:', req.body);
+  console.log('Received template text for creation:', JSON.stringify(req.body.template_text));
   const { name, description, template_text, variables } = req.body;
 
   if (!name || !template_text) {
@@ -133,6 +134,8 @@ export async function createTemplate(req: Request, res: Response) {
 export async function updateTemplate(req: Request, res: Response) {
   const { id } = req.params;
   const { name, description, template_text, variables } = req.body;
+  console.log(`Update template request body for ID ${id}:`, req.body);
+  console.log(`Received template text for update ID ${id}:`, JSON.stringify(template_text));
 
   try {
     // Get the existing template

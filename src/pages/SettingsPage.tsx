@@ -87,7 +87,16 @@ export function SettingsPage() {
   const { data: aiConfigs } = useQuery({
     queryKey: ['ai-configs'],
     queryFn: async () => {
-      const response = await fetch('/api/settings/ai');
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        toast.error('Authentication token not found. Please log in.');
+        throw new Error('Authentication token not found');
+      }
+      const response = await fetch('/api/settings/ai', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch AI configurations');
       return response.json();
     },
@@ -96,7 +105,16 @@ export function SettingsPage() {
   const { data: providers } = useQuery<AIProvider[]>({
     queryKey: ['ai-providers'],
     queryFn: async () => {
-      const response = await fetch('/api/settings/providers');
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        toast.error('Authentication token not found. Please log in.');
+        throw new Error('Authentication token not found');
+      }
+      const response = await fetch('/api/settings/providers', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch AI providers');
       return response.json();
     },
@@ -105,7 +123,16 @@ export function SettingsPage() {
   const { data: models } = useQuery<AIModel[]>({
     queryKey: ['ai-models'],
     queryFn: async () => {
-      const response = await fetch('/api/settings/models');
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        toast.error('Authentication token not found. Please log in.');
+        throw new Error('Authentication token not found');
+      }
+      const response = await fetch('/api/settings/models', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch AI models');
       return response.json();
     },
@@ -114,7 +141,16 @@ export function SettingsPage() {
   const { data: categories } = useQuery<VariableCategory[]>({
     queryKey: ['variable-categories'],
     queryFn: async () => {
-      const response = await fetch('/api/variable-categories');
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        toast.error('Authentication token not found. Please log in.');
+        throw new Error('Authentication token not found');
+      }
+      const response = await fetch('/api/variable-categories', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch variable categories');
       return response.json();
     },
@@ -124,7 +160,16 @@ export function SettingsPage() {
     queryKey: ['variables', selectedCategory],
     enabled: !!selectedCategory,
     queryFn: async () => {
-      const response = await fetch(`/api/variable-definitions/${selectedCategory}`);
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        toast.error('Authentication token not found. Please log in.');
+        throw new Error('Authentication token not found');
+      }
+      const response = await fetch(`/api/variable-definitions/${selectedCategory}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch variables');
       return response.json();
     },
@@ -133,7 +178,16 @@ export function SettingsPage() {
   const { data: variableTypes } = useQuery<VariableType[]>({
     queryKey: ['variable-types'],
     queryFn: async () => {
-      const response = await fetch('/api/variable-types');
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        toast.error('Authentication token not found. Please log in.');
+        throw new Error('Authentication token not found');
+      }
+      const response = await fetch('/api/variable-types', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch variable types');
       return response.json();
     },
@@ -215,9 +269,14 @@ export function SettingsPage() {
                     <button
                       onClick={async () => {
                         try {
+                          const token = localStorage.getItem('auth_token');
+                          if (!token) {
+                            toast.error('Authentication token not found. Please log in.');
+                            throw new Error('Authentication token not found');
+                          }
                           const response = await fetch(`/api/settings/ai/${config.id}/test`, {
                             headers: {
-                              'Authorization': `Bearer ${localStorage.getItem('token')}`
+                              'Authorization': `Bearer ${token}`
                             }
                           });
                       
@@ -392,10 +451,15 @@ export function SettingsPage() {
                                 onClick={async () => {
                                   if (!confirm('Are you sure you want to delete this variable?')) return;
                                   try {
+                                    const token = localStorage.getItem('auth_token');
+                                    if (!token) {
+                                      toast.error('Authentication token not found. Please log in.');
+                                      throw new Error('Authentication token not found');
+                                    }
                                     const response = await fetch(`/api/variable-definitions/${variable.id}`, {
                                       method: 'DELETE',
                                       headers: {
-                                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                        'Authorization': `Bearer ${token}`
                                       }
                                     });
                                     if (!response.ok) throw new Error('Failed to delete variable');
@@ -439,10 +503,15 @@ export function SettingsPage() {
                       onClick={async () => {
                         if (!confirm('Are you sure you want to delete this category?')) return;
                         try {
+                          const token = localStorage.getItem('auth_token');
+                          if (!token) {
+                            toast.error('Authentication token not found. Please log in.');
+                            throw new Error('Authentication token not found');
+                          }
                           const response = await fetch(`/api/variable-categories/${category.id}`, {
                             method: 'DELETE',
                             headers: {
-                              'Authorization': `Bearer ${localStorage.getItem('token')}`
+                              'Authorization': `Bearer ${token}`
                             }
                           });
                           if (!response.ok) throw new Error('Failed to delete category');

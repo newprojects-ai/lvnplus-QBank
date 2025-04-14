@@ -35,11 +35,20 @@ export function VariableModal({ isOpen, onClose, categoryId, variable }: Variabl
     sort_order: variable?.sort_order || 0,
   });
 
-  const { data: variableTypes } = useQuery({
+  const { data: variableTypes, isLoading: isLoadingTypes } = useQuery({
     queryKey: ['variable-types'],
     queryFn: async () => {
-      const response = await fetch('/api/variable-types');
-      if (!response.ok) throw new Error('Failed to fetch variable types');
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        toast.error('Authentication token not found. Please log in.');
+        throw new Error('Authentication token not found');
+      }
+      const response = await fetch('/api/variable-types', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch variable types');
+      }
       return response.json();
     },
   });

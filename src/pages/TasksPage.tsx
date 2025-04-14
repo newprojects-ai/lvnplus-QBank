@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -112,26 +112,38 @@ const PRESET_DISTRIBUTIONS = [
       '5': 16
     },
   },
+  {
+    id: 'balanced',
+    name: 'Balanced',
+    distribution: {
+      '0': 10,
+      '1': 15,
+      '2': 20,
+      '3': 20,
+      '4': 15,
+      '5': 10
+    },
+  },
 ];
 
-const getDifficultyLabel = (level: string) => {
-  switch (level) {
-    case '0':
-      return 'Easiest';
-    case '1':
-      return 'Easy';
-    case '2':
-      return 'Medium';
-    case '3':
-      return 'Hard';
-    case '4':
-      return 'Very Hard';
-    case '5':
-      return 'Hardest';
-    default:
-      return 'Unknown';
-  }
-};
+// const getDifficultyLabel = (level: string) => {
+//   switch (level) {
+//     case '0':
+//       return 'Easiest';
+//     case '1':
+//       return 'Easy';
+//     case '2':
+//       return 'Medium';
+//     case '3':
+//       return 'Hard';
+//     case '4':
+//       return 'Very Hard';
+//     case '5':
+//       return 'Hardest';
+//     default:
+//       return 'Unknown';
+//   }
+// };
 
 export function TasksPage() {
   // State for UI
@@ -141,7 +153,7 @@ export function TasksPage() {
   const [selectedSubject, setSelectedSubject] = useState<string>('');
   const [selectedTopics, setSelectedTopics] = useState<number[]>([]);
   const [selectedSubtopics, setSelectedSubtopics] = useState<number[]>([]);
-  const [selectedDistribution, setSelectedDistribution] = useState<string>('equal');
+  const [selectedDifficultyDistribution, setSelectedDifficultyDistribution] = useState<string>('balanced');
   const [customDistribution, setCustomDistribution] = useState<Record<string, number>>({
     '0': 16,
     '1': 17,
@@ -150,8 +162,11 @@ export function TasksPage() {
     '4': 17,
     '5': 16
   });
+  const [totalQuestions, setTotalQuestions] = useState<number>(10);
   const [distributionTotal, setDistributionTotal] = useState<number>(100);
   const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null);
+  const [viewingTopicId, setViewingTopicId] = useState<number | null>(null);
+  const [isLoadingTemplateData, setIsLoadingTemplateData] = useState(false);
 
   // State for data
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -226,21 +241,55 @@ export function TasksPage() {
 
   // Add authentication headers to fetch requests
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
-    const authToken = await ensureAuthenticated();
-    
-    if (!authToken) {
-      throw new Error('Authentication required');
+    try {
+      const authToken = await ensureAuthenticated();
+      
+      if (!authToken) {
+        throw new Error('Authentication required');
+      }
+      
+      const headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json'
+      };
+      
+      const response = await fetch(url, {
+        ...options,
+        headers
+      });
+      
+      // If we get a 401 Unauthorized, try to login again
+      if (response.status === 401) {
+        // Clear token and try to login again
+        localStorage.removeItem('auth_token');
+        setToken(null);
+        setIsAuthenticated(false);
+        
+        // Try again with fresh login
+        const newToken = await login();
+        if (!newToken) {
+          throw new Error('Authentication failed');
+        }
+        
+        // Retry the request with the new token
+        const retryResponse = await fetch(url, {
+          ...options,
+          headers: {
+            ...options.headers,
+            'Authorization': `Bearer ${newToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        return retryResponse;
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Error in authenticatedFetch:', error);
+      throw error;
     }
-    
-    const headers = {
-      ...options.headers,
-      'Authorization': `Bearer ${authToken}`,
-    };
-    
-    return fetch(url, {
-      ...options,
-      headers,
-    });
   };
 
   // Fetch tasks
@@ -387,9 +436,28 @@ export function TasksPage() {
       resetForm();
       refetch();
     },
-    onError: (error: Error) => {
+    onError: (error: unknown) => { // Explicitly type error as unknown
       console.error('Error creating task:', error);
-      toast.error(`Failed to create task: ${error.message}`);
+      // Handle specific error messages from backend if available
+      let errorMessage = 'Failed to create task. Please try again.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else {
+        try {
+          // Attempt to parse if it's a JSON response error
+          const errorData = JSON.parse(String(error));
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          // Fallback if parsing fails or it's another type
+          console.error('Could not parse error object:', parseError, 'Original error:', error);
+        }
+      }
+      
+      toast.error(errorMessage);
     },
   });
 
@@ -411,9 +479,26 @@ export function TasksPage() {
       toast.success('Task deleted successfully');
       refetch();
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       console.error('Error deleting task:', error);
-      toast.error(`Failed to delete task: ${error.message}`);
+      let errorMessage = 'Failed to delete task';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else {
+        try {
+          // Attempt to parse if it's a JSON response error
+          const errorData = JSON.parse(String(error));
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          // Fallback if parsing fails or it's another type
+          console.error('Could not parse error:', error);
+        }
+      }
+      toast.error(errorMessage);
     },
   });
 
@@ -429,7 +514,7 @@ export function TasksPage() {
       variable_values: {},
     });
     setPromptPreview('');
-    setSelectedDistribution('equal');
+    setSelectedDifficultyDistribution('balanced');
     setCustomDistribution({
       '0': 16,
       '1': 17,
@@ -440,51 +525,156 @@ export function TasksPage() {
     });
   };
 
-  // Update selected template data when template changes
+  // Fetch template data when template ID changes
   useEffect(() => {
-    if (selectedTemplate && templates) {
-      const template = templates.find((t: PromptTemplate) => t.id === selectedTemplate);
-      setSelectedTemplateData(template || null);
-    } else {
+    // Ensure selectedTemplate is a valid, non-empty string before fetching
+    if (!selectedTemplate || typeof selectedTemplate !== 'string' || selectedTemplate.trim() === '') {
+      console.log('Template selection cleared or invalid:', selectedTemplate);
       setSelectedTemplateData(null);
+      setFormData(prev => ({
+        ...prev,
+        template_id: '', // Clear template_id in form data
+        variable_values: {},
+      }));
+      return;
     }
-  }, [selectedTemplate, templates]);
+
+    console.log('Fetching template data for ID:', selectedTemplate); // Log the ID being fetched
+    
+    // Show loading state
+    setIsLoadingTemplateData(true);
+    
+    // Get the authentication token
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        console.error("Authentication token not found. Please log in.");
+        toast.error("Authentication token not found. Please log in.");
+        setIsLoadingTemplateData(false);
+        // Optionally redirect to login or handle appropriately
+        return; 
+    }
+    
+    // Make the API request
+    fetch(`/api/prompt-templates/${selectedTemplate}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => {
+      if (response.status === 404) {
+          console.error('Template not found (404) for ID:', selectedTemplate);
+          toast.error('Selected template could not be found.');
+          throw new Error('Template not found (404)'); // Specific error for 404
+      }
+      if (!response.ok) {
+        // Log the actual status text for other errors
+        console.error(`HTTP error ${response.status}: ${response.statusText} for ID:`, selectedTemplate);
+        throw new Error(`HTTP error ${response.status}: ${response.statusText}`); // Include status text
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Template data loaded:', data);
+      setSelectedTemplateData(data);
+      
+      // Pre-populate form with default values
+      const defaultValues: Record<string, any> = {};
+      
+      // Add default values for common variables
+      defaultValues.total_questions = totalQuestions; // Use state value
+      defaultValues.difficulty_distribution = JSON.stringify(
+        PRESET_DISTRIBUTIONS.find(d => d.id === selectedDifficultyDistribution)?.distribution || {}
+      );
+      
+      // Add values from template variables
+      if (data.variables && Array.isArray(data.variables)) {
+        data.variables.forEach((variable: TemplateVariable) => {
+          if (variable && variable.name) {
+            // Only add template default if it doesn't conflict with core settings and isn't already set
+            if (!(variable.name in defaultValues) && variable.default_value) {
+              defaultValues[variable.name] = variable.default_value;
+            } else if (!(variable.name in defaultValues)) {
+              defaultValues[variable.name] = ''; // Initialize other variables as empty
+            }
+          }
+        });
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        template_id: selectedTemplate,
+        variable_values: defaultValues,
+      }));
+      
+      // Update prompt preview
+      setTimeout(() => {
+        selectedTemplateData && setPromptPreview(selectedTemplateData.template_text);
+      }, 100);
+    })
+    .catch(error => {
+      console.error('Error fetching template data:', error);
+      // Avoid showing generic error if specific 404 toast was already shown
+      if (!error.message.includes('404')) {
+        toast.error('Error loading template data. Please try again.');
+      }
+      // Clear data if fetch fails
+      setSelectedTemplateData(null);
+      setFormData(prev => ({
+        ...prev,
+        template_id: selectedTemplate, // Keep selected ID but clear values
+        variable_values: {},
+      }));
+    })
+    .finally(() => {
+      setIsLoadingTemplateData(false);
+    });
+  }, [selectedTemplate, totalQuestions, selectedDifficultyDistribution]); // Add dependencies
 
   // Update form data when template changes
   useEffect(() => {
-    if (selectedTemplateData) {
+    if (selectedTemplate && selectedTemplateData) {
       try {
+        // Initialize form data with current task settings and template defaults
         // Initialize form data with default values
         const initialValues: Record<string, any> = {};
-
-        // Ensure variables array exists and is an array before iterating
-        const variables = Array.isArray(selectedTemplateData.variables)
-          ? selectedTemplateData.variables
-          : [];
-
-        // Add default values for common variables even if not in template
-        initialValues.total_questions = 10;
-        initialValues.katex_style = 'minimal';
-        initialValues.difficulty_distribution = PRESET_DISTRIBUTIONS[0].distribution;
-
+ 
+        // Add default values for common variables
+        initialValues.total_questions = totalQuestions; // Correct: Use state number value
+        initialValues.difficulty_distribution = JSON.stringify(
+          PRESET_DISTRIBUTIONS.find(d => d.id === selectedDifficultyDistribution)?.distribution || {}
+        );
+ 
         // Add values from template variables
-        variables.forEach(variable => {
-          if (variable && variable.name) {
-            initialValues[variable.name] = variable.default_value || '';
-          }
-        });
-
+        if (selectedTemplateData.variables && Array.isArray(selectedTemplateData.variables)) {
+          selectedTemplateData.variables.forEach((variable: TemplateVariable) => {
+            if (variable && variable.name) {
+              // Only add template default if it doesn't conflict with core settings and isn't already set
+              if (!(variable.name in initialValues) && variable.default_value) {
+                initialValues[variable.name] = variable.default_value;
+              } else if (!(variable.name in initialValues)) {
+                initialValues[variable.name] = ''; // Initialize other variables as empty
+              }
+            }
+          });
+        }
+        
         setFormData({
           template_id: selectedTemplate,
           variable_values: initialValues,
         });
-      } catch (error) {
-        console.error('Error processing template data:', error);
-        toast.error('Error loading template data');
+        
+        // Update prompt preview
+        selectedTemplateData && setPromptPreview(selectedTemplateData.template_text); // Ensure preview updates with defaults
+ 
+      } catch (error: any) {
+        console.error('Error initializing form data:', error);
+        toast.error(`Error setting up form: ${error.message || 'Unknown error'}`);
       }
     }
-  }, [selectedTemplate, selectedTemplateData]);
-
+  }, [selectedTemplate, selectedTemplateData, selectedDifficultyDistribution, totalQuestions]); // Added dependencies
+ 
   // Update topics when subject changes
   useEffect(() => {
     if (selectedSubject) {
@@ -513,6 +703,7 @@ export function TasksPage() {
           ...prev.variable_values,
           topic: selectedTopics
             .map(topicId => topics?.find((t: Topic) => t.topic_id === topicId)?.topic_name || '')
+            .filter(Boolean)
             .join(', '),
           subtopic: '',
         },
@@ -523,7 +714,7 @@ export function TasksPage() {
 
   // Update difficulty distribution when preset changes
   useEffect(() => {
-    const preset = PRESET_DISTRIBUTIONS.find(d => d.id === selectedDistribution);
+    const preset = PRESET_DISTRIBUTIONS.find(d => d.id === selectedDifficultyDistribution);
     if (preset) {
       if (preset.id === 'custom') {
         setFormData(prev => ({
@@ -544,199 +735,120 @@ export function TasksPage() {
         setCustomDistribution(preset.distribution);
       }
     }
-  }, [selectedDistribution, customDistribution]);
+  }, [selectedDifficultyDistribution, customDistribution]);
 
   // Update distribution total when custom distribution changes
   useEffect(() => {
-    if (selectedDistribution === 'custom') {
+    if (selectedDifficultyDistribution === 'custom') {
       const total = Object.values(customDistribution).reduce((sum, value) => sum + value, 0);
       setDistributionTotal(total);
     } else {
       setDistributionTotal(100);
     }
-  }, [selectedDistribution, customDistribution]);
+  }, [selectedDifficultyDistribution, customDistribution]);
 
-  // Generate prompt preview
+  // Handle changes in variable inputs
+  const handleVariableChange = (name: string, value: any) => {
+    console.log(`handleVariableChange: name='${name}', value=`, value);
+    setFormData(prev => {
+      const updatedValues = { ...prev.variable_values, [name]: value };
+      console.log('Updating formData.variable_values:', updatedValues);
+      return {
+        ...prev,
+        variable_values: updatedValues,
+      };
+    });
+  };
+
+  // Effect to update prompt preview when template or variable values change
   useEffect(() => {
-    try {
-      if (selectedTemplateData && selectedTemplateData.template_text) {
-        let preview = selectedTemplateData.template_text;
-
-        // Get all variables from the template text
-        const variableMatches = preview.match(/{([^{}]+)}/g) || [];
-        const variableNames = variableMatches.map(match => match.replace(/{|}/g, ''));
-
-        // Replace variables with their values
-        for (const varName of variableNames) {
-          const value = formData.variable_values[varName];
-          if (value !== undefined && value !== null && value !== '') {
-            const regex = new RegExp(`{${varName}}`, 'g');
-            if (typeof value === 'object') {
-              preview = preview.replace(regex, JSON.stringify(value, null, 2));
-            } else {
-              preview = preview.replace(regex, String(value));
-            }
+    console.log('Preview useEffect triggered. selectedTemplateData:', selectedTemplateData, 'formData.variable_values:', formData.variable_values);
+    if (selectedTemplateData) {
+      let preview = selectedTemplateData.template_text;
+      
+      // Replace variables in the preview
+      preview = preview.replace(/{([^{}]+)}/g, (_, variableName) => {
+        const value = formData.variable_values[variableName];
+        const hasValue = value !== undefined && value !== null && value !== '';
+        if (hasValue) {
+          // Use simple string representation for preview
+          return `[${variableName}=${String(value)}]`;
+        } else {
+          // Check if it's a predefined variable we handle specially
+          if (variableName === 'topic') {
+            const topicNames = selectedTopics
+              .map(id => topics.find(t => t.topic_id === id)?.topic_name)
+              .filter(Boolean)
+              .join(', ');
+            return topicNames ? `[topic=${topicNames}]` : '[NEEDS VALUE: topic]';
+          } else if (variableName === 'subtopic') {
+            const subtopicNames = selectedSubtopics
+              .map(id => subtopics.find(st => st.subtopic_id === id)?.subtopic_name)
+              .filter(Boolean)
+              .join(', ');
+            return subtopicNames ? `[subtopic=${subtopicNames}]` : '[NEEDS VALUE: subtopic]';
+          } else if (variableName === 'number') {
+            return `[NEEDS VALUE: number]`; // Placeholder for total_questions logic if needed
+          } else if (variableName === 'difficulty_level') {
+             return `[NEEDS VALUE: difficulty_level]`; // Placeholder for difficulty
           }
+           else if (variableName === '1') {
+             return `[NEEDS VALUE: 1]`; // Placeholder for difficulty
+          }
+           else if (variableName === '2') {
+             return `[NEEDS VALUE: 2]`; // Placeholder for difficulty
+          }
+            else if (variableName === 'level') {
+             return `[NEEDS VALUE: level]`; // Placeholder for difficulty
+          }
+          // Default placeholder for other variables
+          return `[NEEDS VALUE: ${variableName}]`;
         }
+      });
 
-        setPromptPreview(preview);
-      } else if (selectedTemplateData) {
-        setPromptPreview(selectedTemplateData.template_text || 'No template text available');
-      } else {
-        setPromptPreview('Select a template to see preview');
-      }
-    } catch (error) {
-      console.error('Error generating prompt preview:', error);
-      setPromptPreview('Error generating preview: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      console.log('Generated Preview String:', preview);
+      selectedTemplateData && setPromptPreview(preview);
+    } else {
+      setPromptPreview(''); // Clear preview if no template selected
     }
+  }, [selectedTemplateData, formData.variable_values, selectedTopics, selectedSubtopics, topics, subtopics]); // Rerun when template, form values, or topic selections change
+
+  // Function to check if all required variables are filled
+  const areRequiredVariablesFilled = useCallback(() => {
+    console.log('Checking required variables. selectedTemplateData:', selectedTemplateData);
+    if (!selectedTemplateData || !selectedTemplateData.variables) {
+      console.log('Required check: No template or variables.');
+      return true; // No template selected or no variables to check
+    }
+
+    return selectedTemplateData.variables.every((variable: TemplateVariable) => {
+      if (!variable.is_required) {
+        // console.log(`Variable '${variable.name}' is not required.`);
+        return true; // Not required, so it doesn't block readiness
+      }
+
+      const value = formData.variable_values[variable.name];
+      console.log(`Checking required variable: '${variable.name}', Value:`, value);
+      const isFilled = value !== undefined && value !== null && value !== '';
+      if (!isFilled) {
+        console.warn(`Required variable '${variable.name}' is missing or empty!`);
+      }
+      return isFilled;
+    });
   }, [selectedTemplateData, formData.variable_values]);
 
-  // Check if all required variables have values
-  const areRequiredVariablesFilled = () => {
-    if (!selectedTemplateData) return false;
-    if (!selectedTemplate) return false;
-
-    try {
-      // Check if subject and topic are selected (these are always required)
-      if (!selectedSubject || selectedTopics.length === 0) {
-        return false;
-      }
-
-      // Ensure variables array exists and is an array
-      const variables = Array.isArray(selectedTemplateData.variables)
-        ? selectedTemplateData.variables
-        : [];
-
-      // If no variables defined, consider it valid
-      if (variables.length === 0) return true;
-
-      // Check all required variables
-      return variables
-        .filter(v => v && v.is_required)
-        .every(v => {
-          if (!v || !v.name) return true; // Skip invalid variable definitions
-          const value = formData.variable_values[v.name];
-          return value !== undefined && value !== '' && value !== null;
-        });
-    } catch (error) {
-      console.error('Error checking required variables:', error);
-      return false;
-    }
-  };
-
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      if (!selectedTemplate) {
-        toast.error('Please select a template');
-        return;
-      }
-
-      if (!selectedSubject) {
-        toast.error('Please select a subject');
-        return;
-      }
-
-      if (selectedTopics.length === 0) {
-        toast.error('Please select at least one topic');
-        return;
-      }
-
-      if (!areRequiredVariablesFilled()) {
-        toast.error('Please fill in all required variables');
-        return;
-      }
-
-      if (selectedDistribution === 'custom' && distributionTotal !== 100) {
-        toast.error('Difficulty distribution percentages must add up to 100%');
-        return;
-      }
-
-      // Make sure subject and topic are properly set in the form data
-      const updatedFormData = {
-        ...formData,
-        variable_values: {
-          ...formData.variable_values,
-          subject: subjects?.find((s: Subject) => s.subject_id === parseInt(selectedSubject))?.subject_name || '',
-          topic: selectedTopics
-            .map(topicId => topics?.find((t: Topic) => t.topic_id === topicId)?.topic_name || '')
-            .join(', '),
-          subtopic: selectedSubtopics
-            .map(subtopicId => subtopics?.find((s: Subtopic) => s.subtopic_id === subtopicId)?.subtopic_name || '')
-            .join(', '),
-        }
-      };
-
-      createTaskMutation.mutate(updatedFormData);
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      toast.error('An error occurred while creating the task');
-    }
-  };
-
-  // Handle custom distribution change
-  const handleCustomDistributionChange = (level: string, value: number) => {
-    setCustomDistribution(prev => ({
-      ...prev,
-      [level]: value
-    }));
-  };
-
-  // Handle variable change
-  const handleVariableChange = (name: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      variable_values: {
-        ...prev.variable_values,
-        [name]: value,
-      },
-    }));
-  };
-
-  // Group variables by category
-  const groupVariablesByCategory = (variables: TemplateVariable[]) => {
-    if (!variables) return {};
+  // Render task creation status
+  const renderTaskCreationStatus = () => {
+    const isReady = areRequiredVariablesFilled();
     
-    const grouped: Record<string, TemplateVariable[]> = {
-      'Display Options': []
-    };
-    
-    variables.forEach(variable => {
-      if (variable.name === 'katex_style') {
-        grouped['Display Options'].push(variable);
-      }
-    });
-    
-    // Remove empty groups
-    Object.keys(grouped).forEach(key => {
-      if (grouped[key].length === 0) {
-        delete grouped[key];
-      }
-    });
-    
-    return grouped;
-  };
-
-  // Compute initial state for expanded groups
-  useEffect(() => {
-    if (selectedTemplateData && selectedTemplateData.variables) {
-      const groups = Object.keys(groupVariablesByCategory(selectedTemplateData.variables));
-      const initialExpandedState: Record<string, boolean> = {};
-      groups.forEach(group => {
-        initialExpandedState[group] = true;
-      });
-      setExpandedGroups(initialExpandedState);
-    }
-  }, [selectedTemplateData]);
-
-  // Function to toggle group expansion
-  const toggleGroup = (groupName: string) => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [groupName]: !prev[groupName]
-    }));
+    return (
+      <div className="flex items-center">
+        <div className={`flex-shrink-0 h-3 w-3 rounded-full ${isReady ? 'bg-green-500' : 'bg-red-500'}`}></div>
+        <span className={`ml-2 text-sm ${isReady ? 'text-green-600' : 'text-red-600'}`}>
+          {isReady ? 'Ready to create' : 'Not ready'}
+        </span>
+      </div>
+    );
   };
 
   // Topic and Subtopic Selection UI
@@ -758,6 +870,7 @@ export function TasksPage() {
               // Reset topic selections when subject changes
               setSelectedTopics([]);
               setSelectedSubtopics([]);
+              setViewingTopicId(null);
             }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             required
@@ -771,184 +884,188 @@ export function TasksPage() {
           </select>
         </div>
         
-        {selectedSubject && (
-          <div className="flex flex-col md:flex-row md:space-x-4">
-            {/* Topics List */}
-            <div className="w-full md:w-1/2 mb-4 md:mb-0">
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Topics
-                </label>
-                <div className="flex space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const allTopicIds = topics
-                        .filter(topic => topic.subject_id === parseInt(selectedSubject))
-                        .map(topic => topic.topic_id);
-                      setSelectedTopics(allTopicIds);
-                    }}
-                    className="text-xs text-indigo-600 hover:text-indigo-800"
+        {/* Topics List */}
+        <div className="w-full md:w-1/2 mb-4 md:mb-0">
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Topics
+            </label>
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const allTopicIds = topics
+                    .filter(topic => topic.subject_id === parseInt(selectedSubject))
+                    .map(topic => topic.topic_id);
+                  setSelectedTopics(allTopicIds);
+                }}
+                className="text-xs text-indigo-600 hover:text-indigo-800"
+              >
+                Select All
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedTopics([]);
+                  setSelectedSubtopics([]);
+                  setViewingTopicId(null);
+                }}
+                className="text-xs text-indigo-600 hover:text-indigo-800"
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+          
+          <div className="border border-gray-300 rounded-md overflow-y-auto max-h-60">
+            {topics
+              .filter(topic => topic.subject_id === parseInt(selectedSubject))
+              .map(topic => {
+                const highlightClass = getTopicHighlightClass(topic.topic_id);
+                
+                return (
+                  <div 
+                    key={topic.topic_id} 
+                    className={`border-b border-gray-300 last:border-b-0 ${
+                      viewingTopicId === topic.topic_id ? 'bg-indigo-50' : highlightClass
+                    }`}
                   >
-                    Select All
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedTopics([]);
-                      setSelectedSubtopics([]);
-                    }}
-                    className="text-xs text-indigo-600 hover:text-indigo-800"
-                  >
-                    Clear All
-                  </button>
-                </div>
-              </div>
-              
-              <div className="border border-gray-300 rounded-md overflow-y-auto max-h-60">
-                {topics
-                  .filter(topic => topic.subject_id === parseInt(selectedSubject))
-                  .map(topic => (
                     <div 
-                      key={topic.topic_id} 
-                      className="border-b border-gray-300 last:border-b-0"
+                      className="flex items-center p-2 cursor-pointer hover:bg-gray-50"
+                      onClick={() => {
+                        // Single click to focus on a topic without selecting subtopics
+                        setViewingTopicId(topic.topic_id);
+                      }}
                     >
-                      <div 
-                        className="flex items-center p-2 cursor-pointer hover:bg-gray-50"
-                      >
-                        <div className="flex-shrink-0 mr-2">
-                          <input
-                            type="checkbox"
-                            checked={selectedTopics.includes(topic.topic_id)}
-                            onChange={(e) => {
-                              // Checkbox click to select/deselect
-                              e.stopPropagation();
-                              if (e.target.checked) {
-                                setSelectedTopics(prev => [...prev, topic.topic_id]);
-                              } else {
-                                setSelectedTopics(prev => prev.filter(id => id !== topic.topic_id));
-                                // Also remove any subtopics from this topic
-                                setSelectedSubtopics(prev => 
-                                  prev.filter(id => 
-                                    !subtopics.find(st => st.subtopic_id === id && st.topic_id === topic.topic_id)
-                                  )
-                                );
-                              }
-                            }}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
-                          />
-                        </div>
-                        <div className="flex-grow">
-                          <div className="text-sm font-medium">{topic.topic_name}</div>
+                      <div className="flex-shrink-0 mr-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedTopics.includes(topic.topic_id)}
+                          onChange={(e) => {
+                            // Checkbox click to select/deselect
+                            e.stopPropagation();
+                            if (e.target.checked) {
+                              setSelectedTopics(prev => [...prev, topic.topic_id]);
+                            } else {
+                              setSelectedTopics(prev => prev.filter(id => id !== topic.topic_id));
+                              // Also remove any subtopics from this topic
+                              setSelectedSubtopics(prev => 
+                                prev.filter(id => 
+                                  !subtopics.find(st => st.subtopic_id === id && st.topic_id === topic.topic_id)
+                                )
+                              );
+                            }
+                          }}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div className="flex-grow">
+                        <div className="text-sm font-medium">{topic.topic_name}</div>
+                        <div className="text-xs text-gray-500">
+                          {(() => {
+                            const topicSubtopics = subtopics.filter(st => st.topic_id === topic.topic_id);
+                            const selectedCount = topicSubtopics.filter(st => 
+                              selectedSubtopics.includes(st.subtopic_id)
+                            ).length;
+                            
+                            if (selectedCount === 0) return '';
+                            if (selectedCount === topicSubtopics.length) return `${selectedCount}/${topicSubtopics.length} subtopics selected`;
+                            return `${selectedCount}/${topicSubtopics.length} subtopics selected`;
+                          })()}
                         </div>
                       </div>
                     </div>
-                  ))
-                }
-              </div>
-            </div>
-            
-            {/* Subtopics for Selected Topic */}
-            <div className="w-full md:w-1/2">
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Subtopics
-                </label>
-                <div className="flex space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const allSubtopicIds = subtopics
-                        .filter(subtopic => subtopic.topic_id === selectedTopics[0])
-                        .map(subtopic => subtopic.subtopic_id);
-                      setSelectedSubtopics(prev => {
-                        const currentIds = new Set(prev);
-                        allSubtopicIds.forEach(id => currentIds.add(id));
-                        return Array.from(currentIds);
-                      });
-                      // Also make sure the parent topic is selected
-                      if (!selectedTopics.includes(selectedTopics[0])) {
-                        setSelectedTopics(prev => [...prev, selectedTopics[0]]);
-                      }
-                    }}
-                    className="text-xs text-indigo-600 hover:text-indigo-800"
-                  >
-                    Select All
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedSubtopics(prev => 
-                        prev.filter(id => 
-                          !subtopics.find(st => st.subtopic_id === id && st.topic_id === selectedTopics[0])
-                        )
-                      );
-                    }}
-                    className="text-xs text-indigo-600 hover:text-indigo-800"
-                  >
-                    Clear
-                  </button>
-                </div>
-              </div>
-              
-              <div className="border border-gray-300 rounded-md overflow-y-auto max-h-60">
-                {selectedTopics.length > 0 ? (
-                  subtopics
-                    .filter(subtopic => subtopic.topic_id === selectedTopics[0])
-                    .map(subtopic => (
-                      <div 
-                        key={subtopic.subtopic_id} 
-                        className="border-b border-gray-300 last:border-b-0"
-                      >
-                        <div className="flex items-center p-2 cursor-pointer hover:bg-gray-50">
-                          <div className="flex-shrink-0 mr-2">
-                            <input
-                              type="checkbox"
-                              checked={selectedSubtopics.includes(subtopic.subtopic_id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedSubtopics(prev => [...prev, subtopic.subtopic_id]);
-                                  // Also make sure the parent topic is selected
-                                  if (!selectedTopics.includes(selectedTopics[0])) {
-                                    setSelectedTopics(prev => [...prev, selectedTopics[0]]);
-                                  }
-                                } else {
-                                  setSelectedSubtopics(prev => prev.filter(id => id !== subtopic.subtopic_id));
-                                }
-                              }}
-                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
-                            />
-                          </div>
-                          <div className="flex-grow">
-                            <div className="text-sm">{subtopic.subtopic_name}</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                ) : (
-                  <div className="p-4 text-center text-gray-500 text-sm">
-                    Select a topic to view its subtopics
                   </div>
-                )}
-              </div>
-            </div>
+                );
+              })
+            }
           </div>
-        )}
+        </div>
         
-        {/* Selected Topics and Subtopics Summary */}
-        <div className="mt-4">
-          <div className="text-sm font-medium text-gray-700 mb-2">Selected Items:</div>
-          <div className="bg-white p-3 rounded-md border border-gray-200 text-sm">
-            {selectedTopics.length === 0 ? (
-              <div className="text-gray-500">No topics selected</div>
+        {/* Subtopics for Selected Topic */}
+        <div className="w-full md:w-1/2">
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Subtopics {viewingTopicId && `for ${topics.find(t => t.topic_id === viewingTopicId)?.topic_name || ''}`}
+            </label>
+            {viewingTopicId && (
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allSubtopicIds = subtopics
+                      .filter(subtopic => subtopic.topic_id === viewingTopicId)
+                      .map(subtopic => subtopic.subtopic_id);
+                    setSelectedSubtopics(prev => {
+                      const currentIds = new Set(prev);
+                      allSubtopicIds.forEach(id => currentIds.add(id));
+                      return Array.from(currentIds);
+                    });
+                    // Also make sure the parent topic is selected
+                    if (!selectedTopics.includes(viewingTopicId)) {
+                      setSelectedTopics(prev => [...prev, viewingTopicId]);
+                    }
+                  }}
+                  className="text-xs text-indigo-600 hover:text-indigo-800"
+                >
+                  Select All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSubtopics(prev => 
+                      prev.filter(id => 
+                        !subtopics.find(st => st.subtopic_id === id && st.topic_id === viewingTopicId)
+                      )
+                    );
+                  }}
+                  className="text-xs text-indigo-600 hover:text-indigo-800"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
+          
+          <div className="border border-gray-300 rounded-md overflow-y-auto max-h-60">
+            {viewingTopicId ? (
+              subtopics
+                .filter(subtopic => subtopic.topic_id === viewingTopicId)
+                .map(subtopic => (
+                  <div 
+                    key={subtopic.subtopic_id} 
+                    className={`border-b border-gray-300 last:border-b-0 ${
+                      selectedSubtopics.includes(subtopic.subtopic_id) ? 'bg-green-50' : ''
+                    }`}
+                  >
+                    <div className="flex items-center p-2 cursor-pointer hover:bg-gray-50">
+                      <div className="flex-shrink-0 mr-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedSubtopics.includes(subtopic.subtopic_id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedSubtopics(prev => [...prev, subtopic.subtopic_id]);
+                              // Also make sure the parent topic is selected
+                              if (!selectedTopics.includes(viewingTopicId)) {
+                                setSelectedTopics(prev => [...prev, viewingTopicId]);
+                              }
+                            } else {
+                              setSelectedSubtopics(prev => prev.filter(id => id !== subtopic.subtopic_id));
+                            }
+                          }}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div className="flex-grow">
+                        <div className="text-sm">{subtopic.subtopic_name}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))
             ) : (
-              <div>
-                <div className="mb-2">
-                  <span className="font-medium">Topics:</span> {selectedTopics.length}
-                </div>
-                <div>
-                  <span className="font-medium">Subtopics:</span> {selectedSubtopics.length}
-                </div>
+              <div className="p-4 text-center text-gray-500 text-sm">
+                Select a topic to view its subtopics
               </div>
             )}
           </div>
@@ -964,52 +1081,18 @@ export function TasksPage() {
 
   // Render variable inputs based on template
   const renderVariableInputs = () => {
-    if (!selectedTemplateData || !selectedTemplateData.variables) {
-      return null;
+    if (!selectedTemplateData || !selectedTemplateData.variables || selectedTemplateData.variables.length === 0) {
+      return <p className="text-sm text-gray-500">No variables defined for this template.</p>;
     }
 
+    // Group variables and log the result (keep this log for now)
     const groupedVariables = groupVariablesByCategory(selectedTemplateData.variables);
+    console.log('Result of groupVariablesByCategory:', groupedVariables);
+
+    console.log('renderVariableInputs called. Initial variables:', selectedTemplateData.variables);
 
     return (
       <div className="space-y-6">
-        {/* Subject, Topic, Subtopic Selection */}
-        <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-          <h4 className="font-medium text-gray-700 mb-4">Subject Selection</h4>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Subject <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={selectedSubject || ''}
-              onChange={(e) => {
-                const subjectId = e.target.value;
-                setSelectedSubject(subjectId ? subjectId : '');
-                if (subjectId) {
-                  fetchTopics(subjectId);
-                } else {
-                  setTopics([]);
-                  setSelectedTopics([]);
-                }
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              required
-            >
-              <option value="">Select a subject</option>
-              {isLoadingSubjects ? (
-                <option disabled>Loading subjects...</option>
-              ) : subjects && subjects.length > 0 ? (
-                subjects.map((subject: Subject) => (
-                  <option key={subject.subject_id} value={subject.subject_id}>
-                    {subject.subject_name}
-                  </option>
-                ))
-              ) : (
-                <option disabled>No subjects available</option>
-              )}
-            </select>
-          </div>
-        </div>
-
         {/* Topic and Subtopic Selection */}
         {renderTopicSubtopicSelection()}
 
@@ -1041,8 +1124,8 @@ export function TasksPage() {
                 Distribution Preset
               </label>
               <select
-                value={selectedDistribution}
-                onChange={(e) => setSelectedDistribution(e.target.value)}
+                value={selectedDifficultyDistribution}
+                onChange={(e) => setSelectedDifficultyDistribution(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               >
                 {PRESET_DISTRIBUTIONS.map(preset => (
@@ -1052,109 +1135,100 @@ export function TasksPage() {
                 ))}
               </select>
             </div>
-            
-            {selectedDistribution === 'custom' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h5 className="text-sm font-medium text-gray-700">Custom Distribution</h5>
-                  <span className={`text-sm font-medium ${distributionTotal === 100 ? 'text-green-600' : 'text-red-600'}`}>
-                    Total: {distributionTotal}%
-                  </span>
-                </div>
-                
-                {Object.entries(customDistribution).map(([level, percentage]) => (
-                  <div key={level} className="flex items-center gap-4">
-                    <label className="block text-sm font-medium text-gray-700 w-24">
-                      Level {level}: {getDifficultyLabel(level)}
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={percentage}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        handleCustomDistributionChange(level, value);
-                      }}
-                      className="flex-grow h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <span className="text-sm font-medium text-gray-700 w-12 text-right">
-                      {percentage}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
         {/* Additional Parameters */}
-        {Object.entries(groupVariablesByCategory(selectedTemplateData.variables)).map(([groupName, variables]) => (
-          <div key={groupName} className="bg-gray-50 p-4 rounded-md border border-gray-200">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="font-medium text-gray-700">{groupName}</h4>
-              <button
-                type="button"
-                onClick={() => toggleGroup(groupName)}
-                className="text-gray-400 hover:text-gray-500 focus:outline-none"
-              >
-                <span className={`text-2xl ${expandedGroups[groupName] ? 'rotate-180' : ''}`}>▼</span>
-              </button>
-            </div>
-            
-            <p className="text-sm text-gray-600 mb-4">
-              {groupName === 'Display Options' && 
-                'Visual formatting settings including KaTeX math rendering options and layout preferences.'}
-            </p>
-            
-            {expandedGroups[groupName] && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {variables.map((variable: any) => {
-                  if (!variable || !variable.name) return null;
-                  
-                  const inputType = variable.type === 'number' ? 'number' : 'text';
-                  const isRequired = !!variable.is_required;
-                  
-                  return (
-                    <div key={variable.name}>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {variable.display_name || variable.name}
-                        {isRequired && <span className="text-red-500">*</span>}
-                      </label>
-                      
-                      {/* Special handling for katex_style */}
-                      {variable.name === 'katex_style' ? (
-                        <select
-                          value={formData.variable_values[variable.name] || ''}
-                          onChange={(e) => handleVariableChange(variable.name, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                          required={isRequired}
-                        >
-                          <option value="">None (No KaTeX)</option>
-                          <option value="minimal">Minimal</option>
-                          <option value="standard">Standard</option>
-                          <option value="full">Full</option>
-                        </select>
-                      ) : (
-                        <input
-                          type={inputType}
-                          value={formData.variable_values[variable.name] || ''}
-                          onChange={(e) => {
-                            const value = inputType === 'number' ? parseInt(e.target.value) : e.target.value;
-                            handleVariableChange(variable.name, value);
-                          }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                          required={isRequired}
-                          placeholder={variable.description || ''}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
+        {Object.entries(groupVariablesByCategory(selectedTemplateData.variables)).map(([groupName, varsInCategory]) => {
+          console.log(`Processing category: '${groupName}', Variables found: ${varsInCategory.length}`);
+          return (
+            <div key={groupName} className="bg-gray-50 p-4 rounded-md border border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium text-gray-700">{groupName}</h4>
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(groupName)}
+                  className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                >
+                  <span className={`text-2xl ${expandedGroups[groupName] ? 'rotate-180' : ''}`}>▼</span>
+                </button>
               </div>
-            )}
-          </div>
-        ))}
+              
+              <p className="text-sm text-gray-600 mb-4">
+                {groupName === 'Display Options' && 
+                  'Visual formatting settings including KaTeX math rendering options and layout preferences.'}
+              </p>
+              
+              {expandedGroups[groupName] && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(() => {
+                    const allowedParams = ['number', 'difficulty_level'];
+                    const filteredVars = varsInCategory.filter(variable => allowedParams.includes(variable.name));
+                    
+                    return filteredVars.map((variable: TemplateVariable) => {
+                      console.log(`Rendering input for variable: '${variable.name}', Type: '${variable.data_type}', Options:`, variable.options);
+                      // HACK: Assuming 'variable.type' exists despite TemplateVariable interface lacking it.
+                      // Interface also defines 'options' as string, but usage expects array.
+                      // TODO: Correct TemplateVariable interface definition.
+                      const inputType = (variable as any).type || 'text'; // Revert to using 'type', casting to any to bypass TS error for now
+                      const isRequired = variable.is_required ?? false;
+                      
+                      return (
+                        <div key={variable.name} className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {variable.display_name || variable.name}
+                            {isRequired && <span className="text-red-500">*</span>}
+                          </label>
+                          
+                          {variable.name === 'difficulty_level' ? (
+                            <select
+                              value={formData.variable_values[variable.name] || 'Balanced'}
+                              onChange={(e) => {
+                                handleVariableChange(variable.name, e.target.value);
+                              }}
+                              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                              required={isRequired}
+                            >
+                              <option value="Balanced">Balanced</option>
+                              <option value="Easy Heavy">Easy Heavy</option>
+                              <option value="Hard Heavy">Hard Heavy</option>
+                            </select>
+                          ) : Array.isArray(variable.options) && variable.options.length > 0 ? (
+                            <select
+                              value={formData.variable_values[variable.name] || ''}
+                              onChange={(e) => {
+                                handleVariableChange(variable.name, e.target.value);
+                              }}
+                              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                              required={isRequired}
+                            >
+                              {variable.options.map((option: string) => (
+                                <option key={option} value={option}>{option.charAt(0).toUpperCase() + option.slice(1)}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              type={inputType}
+                              value={formData.variable_values[variable.name] || ''}
+                              onChange={(e) => {
+                                const value = inputType === 'number' ? parseInt(e.target.value) || 0 : e.target.value;
+                                handleVariableChange(variable.name, value);
+                              }}
+                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              required={isRequired}
+                              placeholder={variable.description || ''}
+                              step={inputType === 'number' ? '1' : undefined} // Assuming integer steps for 'number' type
+                            />
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -1233,9 +1307,9 @@ export function TasksPage() {
   // Update form data when topics or subtopics selection changes
   useEffect(() => {
     if (selectedTopics.length > 0) {
-      const topicNames = topics
-        ?.filter((t: Topic) => selectedTopics.includes(t.topic_id))
-        .map((t: Topic) => t.topic_name)
+      const topicNames = selectedTopics
+        .map(topicId => topics?.find((t: Topic) => t.topic_id === topicId)?.topic_name || '')
+        .filter(Boolean)
         .join(', ');
       
       setFormData(prev => ({
@@ -1252,7 +1326,8 @@ export function TasksPage() {
     if (selectedSubtopics.length > 0) {
       const subtopicNames = subtopics
         ?.filter((s: Subtopic) => selectedSubtopics.includes(s.subtopic_id))
-        .map((s: Subtopic) => s.subtopic_name)
+        .map((s: Subtopic) => s.subtopic_name || '')
+        .filter(Boolean)
         .join(', ');
       
       setFormData(prev => ({
@@ -1264,6 +1339,181 @@ export function TasksPage() {
       }));
     }
   }, [selectedSubtopics, subtopics]);
+
+  // Group variables by category
+  const groupVariablesByCategory = (variables: TemplateVariable[]) => {
+    if (!variables) return {};
+    
+    // Initialize default and specific categories
+    const grouped: Record<string, TemplateVariable[]> = {
+      'Parameters': [],
+      'Display Options': []
+    };
+    
+    variables.forEach(variable => {
+      if (variable.name === 'katex_style') {
+        grouped['Display Options'].push(variable);
+      } else {
+        // Add all other variables to the default 'Parameters' group
+        grouped['Parameters'].push(variable);
+      }
+    });
+    
+    // Remove empty groups
+    Object.keys(grouped).forEach(key => {
+      if (grouped[key].length === 0) {
+        delete grouped[key];
+      }
+    });
+    
+    return grouped;
+  };
+
+  // Compute initial state for expanded groups
+  useEffect(() => {
+    if (selectedTemplateData && selectedTemplateData.variables) {
+      const groups = Object.keys(groupVariablesByCategory(selectedTemplateData.variables));
+      const initialExpandedState: Record<string, boolean> = {};
+      groups.forEach(group => {
+        initialExpandedState[group] = true;
+      });
+      setExpandedGroups(initialExpandedState);
+    }
+  }, [selectedTemplateData]);
+
+  // Function to toggle group expansion
+  const toggleGroup = (groupName: string) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupName]: !prev[groupName]
+    }));
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      if (!selectedTemplate) {
+        toast.error('Please select a template');
+        return;
+      }
+
+      if (!selectedSubject) {
+        toast.error('Please select a subject');
+        return;
+      }
+
+      if (selectedTopics.length === 0) {
+        toast.error('Please select at least one topic');
+        return;
+      }
+
+      if (!areRequiredVariablesFilled()) {
+        toast.error('Please fill in all required variables');
+        return;
+      }
+
+      if (selectedDifficultyDistribution === 'custom' && distributionTotal !== 100) {
+        toast.error('Difficulty distribution percentages must add up to 100%');
+        return;
+      }
+
+      // Make sure subject and topic are properly set in the form data
+      const updatedFormData = {
+        ...formData,
+        variable_values: {
+          ...formData.variable_values,
+          subject: subjects?.find((s: Subject) => s.subject_id === parseInt(selectedSubject))?.subject_name || '',
+          topic: selectedTopics
+            .map(topicId => topics?.find((t: Topic) => t.topic_id === topicId)?.topic_name || '')
+            .filter(Boolean)
+            .join(', '),
+          subtopic: selectedSubtopics
+            .map(subtopicId => subtopics?.find((s: Subtopic) => s.subtopic_id === subtopicId)?.subtopic_name || '')
+            .filter(Boolean)
+            .join(', '),
+          difficulty_distribution: JSON.stringify(
+            selectedDifficultyDistribution === 'custom' 
+              ? customDistribution 
+              : PRESET_DISTRIBUTIONS.find(d => d.id === selectedDifficultyDistribution)?.distribution || {}
+          ),
+          total_questions: totalQuestions.toString()
+        }
+      };
+
+      createTaskMutation.mutate(updatedFormData);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      let errorMessage = 'An error occurred while creating the task';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else {
+        try {
+          // Attempt to parse if it's a JSON response error
+          const errorData = JSON.parse(String(error));
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          // Fallback if parsing fails or it's another type
+          console.error('Could not parse error:', error);
+        }
+      }
+      
+      toast.error(errorMessage);
+    }
+  };
+
+  // Get highlight class for topic based on subtopic selection status
+  const getTopicHighlightClass = (topicId: number) => {
+    const topicSubtopics = subtopics.filter(st => st.topic_id === topicId);
+    if (topicSubtopics.length === 0) return '';
+    
+    const selectedCount = topicSubtopics.filter(st => 
+      selectedSubtopics.includes(st.subtopic_id)
+    ).length;
+    
+    if (selectedCount === 0) return '';
+    if (selectedCount === topicSubtopics.length) return 'bg-green-50';
+    return 'bg-yellow-50';
+  };
+
+  // Render template selection dropdown with loading state
+  const renderTemplateDropdown = () => {
+    return (
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Template
+        </label>
+        <div className="relative">
+          <select
+            value={selectedTemplate}
+            onChange={(e) => setSelectedTemplate(e.target.value)}
+            className="w-full px-3 py-2 border rounded-lg bg-white"
+            disabled={isLoadingTemplates || isLoadingTemplateData}
+          >
+            <option value="">Select a template</option>
+            {templates.map((template: PromptTemplate) => (
+              <option key={template.id} value={template.id}>
+                {template.name}
+              </option>
+            ))}
+          </select>
+          {(isLoadingTemplates || isLoadingTemplateData) && (
+            <div className="absolute right-2 top-2">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+            </div>
+          )}
+        </div>
+        {isLoadingTemplateData && (
+          <p className="text-xs text-blue-600 mt-1">Loading template data...</p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -1360,8 +1610,9 @@ export function TasksPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleSubmit}>
               <div className="p-6 border-b border-gray-200">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-bold text-gray-900">Create New Task</h2>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Create New Task</h3>
+                  {renderTaskCreationStatus()}
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
@@ -1374,97 +1625,7 @@ export function TasksPage() {
               
               <div className="p-6 space-y-6">
                 {/* Template Selection */}
-                <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                  <h4 className="font-medium text-gray-700 mb-4">Template Selection</h4>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Template <span className="text-red-500">*</span>
-                  </label>
-                  
-                  {isLoadingTemplates ? (
-                    <div className="p-4 bg-gray-50 rounded-md flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-indigo-500 mr-2"></div>
-                      <span>Loading templates...</span>
-                    </div>
-                  ) : templates && templates.length > 0 ? (
-                    <div className="relative">
-                      <select
-                        value={selectedTemplate}
-                        onChange={(e) => setSelectedTemplate(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        required
-                      >
-                        <option value="">Select a template</option>
-                        {templates.map((template: PromptTemplate) => (
-                          <option key={template.id} value={template.id}>
-                            {template.name}
-                          </option>
-                        ))}
-                      </select>
-                      
-                      {selectedTemplate && (
-                        <div className="mt-2">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedTemplate(expandedTemplate === selectedTemplate ? null : selectedTemplate)}
-                            className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center"
-                          >
-                            {expandedTemplate === selectedTemplate ? 'Hide' : 'Show'} template details
-                            <span className={`ml-1 text-xs transition-transform duration-200 ${
-                              expandedTemplate === selectedTemplate ? 'transform rotate-180' : ''
-                            }`}>▼</span>
-                          </button>
-                          
-                          {expandedTemplate === selectedTemplate && selectedTemplateData && (
-                            <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
-                              <div className="text-sm mb-2">
-                                <span className="font-medium">Description:</span> {selectedTemplateData.description}
-                              </div>
-                              <div className="text-sm mb-2">
-                                <span className="font-medium">Template Variables:</span>
-                              </div>
-                              <div className="bg-white p-2 rounded border border-gray-200 text-sm font-mono whitespace-pre-wrap">
-                                {selectedTemplateData.template_text.split('\n').map((line, i) => (
-                                  <div key={i} className="py-0.5">
-                                    {line.replace(/{([^{}]+)}/g, (match) => (
-                                      `<span class="bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded border border-yellow-200">${match}</span>`
-                                    ))}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-gray-50 rounded-md text-center text-gray-500">
-                      No templates available
-                    </div>
-                  )}
-                  
-                  {(!templates || templates.length === 0) && !isLoadingTemplates && (
-                    <div className="mt-2 text-sm text-red-600">
-                      <p>No templates found. Please check your connection or authentication.</p>
-                      <div className="mt-1 flex space-x-2">
-                        <button 
-                          onClick={retryLoadTemplates}
-                          className="text-indigo-600 hover:text-indigo-800 font-medium"
-                          type="button"
-                        >
-                          Retry Loading Templates
-                        </button>
-                        <span className="text-gray-400">|</span>
-                        <button 
-                          onClick={retryAuthentication}
-                          className="text-indigo-600 hover:text-indigo-800 font-medium"
-                          type="button"
-                        >
-                          Retry Authentication
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {renderTemplateDropdown()}
 
                 {/* Template Variables */}
                 {selectedTemplateData && (
@@ -1483,7 +1644,7 @@ export function TasksPage() {
                             onClick={() => {
                               // Force regenerate preview
                               if (selectedTemplateData) {
-                                let preview = selectedTemplateData.template_text || '';
+                                let preview = selectedTemplateData.template_text;
                                 setPromptPreview(preview);
                               }
                             }}
@@ -1564,7 +1725,7 @@ export function TasksPage() {
                           <span className="ml-2">Topic selected</span>
                         </div>
                         
-                        {selectedDistribution === 'custom' && (
+                        {selectedDifficultyDistribution === 'custom' && (
                           <div className="flex items-center">
                             <span className={distributionTotal === 100 ? "text-green-600" : "text-red-600"}>
                               {distributionTotal === 100 ? "✓" : "✗"}
@@ -1588,9 +1749,9 @@ export function TasksPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={!areRequiredVariablesFilled() || (selectedDistribution === 'custom' && distributionTotal !== 100)}
+                  disabled={!areRequiredVariablesFilled() || (selectedDifficultyDistribution === 'custom' && distributionTotal !== 100)}
                   className={`px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm focus:outline-none ${
-                    areRequiredVariablesFilled() && (selectedDistribution !== 'custom' || distributionTotal === 100)
+                    areRequiredVariablesFilled() && (selectedDifficultyDistribution !== 'custom' || distributionTotal === 100)
                       ? 'bg-indigo-600 hover:bg-indigo-700'
                       : 'bg-indigo-300 cursor-not-allowed'
                   }`}

@@ -260,6 +260,73 @@ QBank is a question bank generation system that uses AI to create, manage, and e
     - Fixed HTML injection issues in the template display
     - Improved error handling and retry mechanism
 
+### April 4, 2025 (Update - 10:20)
+- Fixed several issues with the Task UI based on user feedback:
+  - Improved Topic/Subtopic selection functionality:
+    - Added color-coding for topics based on subtopic selection status:
+      - Green highlight for topics with all subtopics selected
+      - Yellow highlight for topics with some subtopics selected
+      - No highlight for topics with no subtopics selected
+    - Fixed the ability to click on a topic to see its subtopics
+    - Selected subtopics now have a green background for better visibility
+    - Added count of selected subtopics under each topic name
+  - Fixed default values in the prompt preview:
+    - Default value for "Total Questions" (10) is now properly injected into the prompt preview
+    - Default "Balanced Distribution" is now reflected in the prompt preview
+    - Added proper variable substitution for all template variables
+  - Improved Task Creation Status:
+    - Added clear "Ready to create" / "Not ready" status indicator
+    - Fixed validation to properly check all required fields
+    - Status now updates in real-time as fields are filled
+  - Added "Balanced" distribution preset as the default option
+
+### April 7, 2025
+- Fixed authentication issues by adding Authorization headers to API calls.
+  - Modified `src/pages/PromptTemplatesPage.tsx` to include `Authorization: Bearer <token>` in headers for all `fetch` calls using `localStorage.getItem('auth_token')`.
+  - Modified `src/pages/SettingsPage.tsx` similarly for all API calls within `useQuery` and event handlers.
+  - Modified `src/components/settings/VariableModal.tsx` to add the Authorization header to the `/api/variable-types` fetch call.
+
+### April 7, 2025 (Update - 22:34:00)
+ 
+ **What:** Added Authorization headers to API calls.
+-**Why:** To resolve persistent 401 Unauthorized errors when accessing data.
++**Why:** To resolve 401 Unauthorized errors when accessing data.
+ **How:** 
+ - Modified `src/pages/PromptTemplatesPage.tsx` to include `Authorization: Bearer <token>` in headers for all `fetch` calls using `localStorage.getItem('auth_token')`.
+ - Modified `src/pages/SettingsPage.tsx` similarly for all API calls within `useQuery` and event handlers.
+ - Modified `src/components/settings/VariableModal.tsx` to add the Authorization header to the `/api/variable-types` fetch call.
+
+### April 7, 2025 (Update - 22:31:00)
+ 
+ **What:** Corrected token retrieval logic.
+ **Why:** A previous fix incorrectly introduced a hardcoded placeholder token in `PromptTemplatesPage.tsx`, still causing 401 errors.
+ **How:** 
+ - Removed the hardcoded `const token = 'your_token_here';` from `src/pages/PromptTemplatesPage.tsx`.
+ - Ensured `localStorage.getItem('auth_token')` is called within the component function scope.
+ - Added explicit token checks within `useQuery` `queryFn` callbacks and before mutation calls (`handleSubmit`, `handleDelete`) in `PromptTemplatesPage.tsx` to prevent requests/mutations without a valid token and provide user feedback via toasts.
+
+### April 7, 2025 (Update - 22:37:00)
+ 
+ **What:** Corrected API endpoint path in `TasksPage`.
+ **Why:** The `TasksPage` was attempting to fetch template details using `/api/templates/:id` instead of the correct `/api/prompt-templates/:id`, resulting in 404 Not Found errors.
+ **How:** 
+ - Modified the `useEffect` hook in `src/pages/TasksPage.tsx` (around line 521) to change the `fetch` URL from `/api/templates/${selectedTemplate}` to `/api/prompt-templates/${selectedTemplate}`.
+ - Improved error logging in the same fetch call to include `response.statusText`.
+
+### April 8, 2025
+**Date:** 2025-04-08 13:13 (approx)
+**File:** `src/pages/TasksPage.tsx`
+**Change:** Corrected default value initialization logic in `useEffect` (lines ~599-635) and restored the `renderTopicSubtopicSelection()` call in `renderVariableInputs` (line ~1095).
+**Reason:** The default values for `totalQuestions` and `difficulty_distribution` were not being set correctly, and the Subject/Topic/Subtopic selection UI was mistakenly removed in a previous edit. This corrects the default value logic and restores the required UI component.
+**How:** Used `edit_file` tool to modify the `useEffect` hook and the `renderVariableInputs` function.
+
+### April 8, 2025
+**Date:** 2025-04-08 13:28 (approx)
+**File:** `src/pages/TasksPage.tsx`
+**Change:** Added detailed logging and more robust checks to the `areRequiredVariablesFilled` function (lines ~825-843).
+**Reason:** To debug the "Not Ready" status and the unexpected console error during task validation. The previous logging was insufficient to pinpoint the exact cause.
+**How:** Used `edit_file` tool to add `console.log` statements for the full variable object and improved the check for missing/empty values.
+
 ## Current Features
 
 ### Authentication
@@ -402,4 +469,4 @@ QBank is a question bank generation system that uses AI to create, manage, and e
 - None currently reported
 
 ## Last Updated
-April 3, 2025
+April 8, 2025
