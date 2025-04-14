@@ -28,12 +28,11 @@ import {
   updateTemplateVariables,
 } from './variables';
 import {
-  getPromptTemplates,
-  createPromptTemplate,
-  updatePromptTemplate,
-  deletePromptTemplate,
-  getVariableTypes,
-  getVariableOptions,
+  getTemplates,
+  getTemplateById,
+  createTemplate,
+  updateTemplate,
+  deleteTemplate,
 } from './templates';
 import { generateQuestions } from './generator';
 import {
@@ -56,6 +55,12 @@ import {
   createAIModel,
   updateAIModel
 } from './settings';
+import {
+  getTasks,
+  getTaskById,
+  createTask,
+  deleteTask
+} from './tasks';
 
 // Initialize express
 const app = express();
@@ -84,6 +89,13 @@ async function checkDatabaseConnection() {
 // Auth routes
 app.post('/api/auth/login', login);
 
+// Unprotected template routes (temporary)
+app.get('/api/prompt-templates', getTemplates);
+app.get('/api/prompt-templates/:id', getTemplateById);
+app.post('/api/prompt-templates', createTemplate);
+app.put('/api/prompt-templates/:id', updateTemplate);
+app.delete('/api/prompt-templates/:id', deleteTemplate);
+
 // Protected routes
 app.use('/api', authenticate);
 
@@ -92,16 +104,6 @@ app.get('/api/master-data/subjects', getSubjects);
 app.get('/api/master-data/topics/:subjectId', getTopics);
 app.get('/api/master-data/subtopics/:topicId', getSubtopics);
 app.get('/api/master-data/difficulty-levels/:subjectId', getDifficultyLevels);
-
-// Prompt Templates
-app.get('/api/prompt-templates', getPromptTemplates);
-app.post('/api/prompt-templates', createPromptTemplate);
-app.put('/api/prompt-templates/:id', updatePromptTemplate);
-app.delete('/api/prompt-templates/:id', deletePromptTemplate);
-
-// Variable Types and Options
-app.get('/api/variable-types', getVariableTypes);
-app.get('/api/variable-options', getVariableOptions);
 
 // Variable Categories
 app.get('/api/variable-categories', getCategories);
@@ -147,6 +149,12 @@ app.put('/api/settings/providers/:id', updateAIProvider);
 app.get('/api/settings/models', getAIModels);
 app.post('/api/settings/models', createAIModel);
 app.put('/api/settings/models/:id', updateAIModel);
+
+// Task routes
+app.get('/api/tasks', getTasks);
+app.get('/api/tasks/:id', getTaskById);
+app.post('/api/tasks', createTask);
+app.delete('/api/tasks/:id', deleteTask);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, async () => {

@@ -1,149 +1,214 @@
-import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { z } from 'zod';
-import { AuthRequest } from './middleware';
+import { Request, Response } from 'express';
+import * as crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
-const variableSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  display_name: z.string(),
-  description: z.string().optional(),
-  variable_type_id: z.string(),
-  is_required: z.boolean(),
-  default_value: z.string().optional(),
-  validation_rules: z.string().optional(),
-  options: z.string().optional(),
-  sort_order: z.number(),
-});
+// Extract variable names from template text using regex
+function extractVariablesFromTemplate(templateText: string): string[] {
+  const variableRegex = /{([^{}]+)}/g;
+  const matches = templateText.match(variableRegex) || [];
+  return matches.map(match => match.slice(1, -1));
+}
 
-const promptTemplateSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
-  template_text: z.string().min(1),
-  variables: z.array(variableSchema),
-});
-
-export async function getPromptTemplates(_req: Request, res: Response) {
+// Get all templates
+export async function getTemplates(_req: Request, res: Response) {
   try {
-    const templates = await prisma.prompt_templates.findMany({
-      orderBy: { created_at: 'desc' },
+    const templates = await prisma.prompt_templates.findMany();
+
+    // Add extracted variables to each template
+    const templatesWithExtractedVars = templates.map(template => {
+      // Parse the variables JSON string
+      const variables = JSON.parse(template.variables || '[]');
+      
+      return {
+        ...template,
+        variables,
+        extracted_variables: extractVariablesFromTemplate(template.template_text),
+      };
     });
-    res.json(templates);
+
+    res.json(templatesWithExtractedVars);
   } catch (error) {
-    console.error('Get prompt templates error:', error);
-    res.status(500).json({ error: 'Failed to fetch prompt templates' });
+    console.error('Error fetching templates:', error);
+    res.status(500).json({ error: 'Failed to fetch templates' });
   }
 }
 
-export async function createPromptTemplate(req: AuthRequest, res: Response) {
+// Get a template by ID
+export async function getTemplateById(req: Request, res: Response) {
+  const { id } = req.params;
+
   try {
-    const data = promptTemplateSchema.parse(req.body);
+    const template = await prisma.prompt_templates.findUnique({
+      where: { id },
+    });
+
+    if (!template) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    // Parse the variables JSON string
+    const variables = JSON.parse(template.variables || '[]');
+
+    // Add extracted variables to the template
+    const templateWithExtractedVars = {
+      ...template,
+      variables,
+      extracted_variables: extractVariablesFromTemplate(template.template_text),
+    };
+
+    res.json(templateWithExtractedVars);
+  } catch (error) {
+    console.error('Error fetching template:', error);
+    res.status(500).json({ error: 'Failed to fetch template' });
+  }
+}
+
+// Create a new template
+export async function createTemplate(req: Request, res: Response) {
+  console.log('Create template request body:', req.body);
+  console.log('Received template text for creation:', JSON.stringify(req.body.template_text));
+  const { name, description, template_text, variables } = req.body;
+
+  if (!name || !template_text) {
+    console.error('Missing required fields: name or template_text');
+    return res.status(400).json({ error: 'Name and template text are required' });
+  }
+
+  try {
+    // Extract variables from the template text
+    const extractedVariables = extractVariablesFromTemplate(template_text);
+    console.log('Extracted variables:', extractedVariables);
     
+    // Use provided variables if available, otherwise create from extracted variables
+    let variableObjects = Array.isArray(variables) ? variables : [];
+    console.log('Variables from request:', variableObjects);
+    
+    // If no variables provided, create from extracted variables
+    if (!variableObjects || variableObjects.length === 0) {
+      variableObjects = extractedVariables.map(varName => ({
+        id: crypto.randomUUID(), // Add ID for each variable
+        name: varName,
+        display_name: varName.charAt(0).toUpperCase() + varName.slice(1).replace(/_/g, ' '),
+        description: `Variable for ${varName}`,
+        variable_type_id: 'text',
+        is_required: true,
+        sort_order: 0,
+      }));
+      console.log('Generated variable objects:', variableObjects);
+    }
+
+    // Ensure each variable has an ID
+    variableObjects = variableObjects.map(v => {
+      if (!v.id) {
+        return { ...v, id: crypto.randomUUID() };
+      }
+      return v;
+    });
+
+    // Create the template
     const template = await prisma.prompt_templates.create({
       data: {
-        name: data.name,
-        description: data.description,
-        template_text: data.template_text,
-        variables: JSON.stringify(data.variables),
-        created_by: req.user!.userId,
+        name,
+        description: description || '',
+        template_text,
+        variables: JSON.stringify(variableObjects),
+        created_by: 'system', // Adding required field
       },
     });
 
-    // Create template variables
-    for (const variable of data.variables) {
-      await prisma.template_variables.create({
-        data: {
-          ...variable,
-          template_id: template.id,
-        },
-      });
-    }
-
-    res.json(template);
+    console.log('Template created successfully:', template.id);
+    res.status(201).json({
+      ...template,
+      variables: variableObjects,
+      extracted_variables: extractedVariables,
+    });
   } catch (error) {
-    console.error('Create prompt template error:', error);
-    res.status(400).json({ error: 'Invalid template data' });
+    console.error('Error creating template:', error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
-export async function updatePromptTemplate(req: AuthRequest, res: Response) {
+// Update a template
+export async function updateTemplate(req: Request, res: Response) {
+  const { id } = req.params;
+  const { name, description, template_text, variables } = req.body;
+  console.log(`Update template request body for ID ${id}:`, req.body);
+  console.log(`Received template text for update ID ${id}:`, JSON.stringify(template_text));
+
   try {
-    const { id } = req.params;
-    const data = promptTemplateSchema.parse(req.body);
+    // Get the existing template
+    const existingTemplate = await prisma.prompt_templates.findUnique({
+      where: { id },
+    });
+
+    if (!existingTemplate) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    // Extract variables from the updated template text
+    const extractedVariables = extractVariablesFromTemplate(template_text);
+
+    // Use provided variables if available
+    let variableObjects = variables || [];
     
+    // If no variables provided, use existing ones or create new ones
+    if (!variableObjects || variableObjects.length === 0) {
+      // Parse existing variables
+      const existingVariables = JSON.parse(existingTemplate.variables || '[]');
+      const existingVarNames = existingVariables.map((v: { name: string }) => v.name);
+
+      // Add any new variables that don't exist yet
+      const variablesToAdd = extractedVariables.filter(v => !existingVarNames.includes(v));
+      variableObjects = [
+        ...existingVariables,
+        ...variablesToAdd.map(varName => ({
+          name: varName,
+          display_name: varName.charAt(0).toUpperCase() + varName.slice(1).replace(/_/g, ' '),
+          description: `Variable for ${varName}`,
+          variable_type_id: 'text',
+          is_required: true,
+          sort_order: existingVariables.length,
+        })),
+      ];
+    }
+
+    // Update the template
     const template = await prisma.prompt_templates.update({
       where: { id },
       data: {
-        name: data.name,
-        description: data.description,
-        template_text: data.template_text,
-        variables: JSON.stringify(data.variables),
+        name,
+        description: description || '',
+        template_text,
+        variables: JSON.stringify(variableObjects),
       },
     });
 
-    // Update template variables
-    await prisma.template_variables.deleteMany({
-      where: { template_id: id },
+    res.json({
+      ...template,
+      variables: variableObjects,
+      extracted_variables: extractedVariables,
     });
-
-    for (const variable of data.variables) {
-      await prisma.template_variables.create({
-        data: {
-          ...variable,
-          template_id: template.id,
-        },
-      });
-    }
-
-    res.json(template);
   } catch (error) {
-    console.error('Update prompt template error:', error);
-    res.status(400).json({ error: 'Failed to update template' });
+    console.error('Error updating template:', error);
+    res.status(500).json({ error: 'Failed to update template' });
   }
 }
 
-export async function deletePromptTemplate(req: Request, res: Response) {
+// Delete a template
+export async function deleteTemplate(req: Request, res: Response) {
+  const { id } = req.params;
+
   try {
-    const { id } = req.params;
-    
-    // Delete associated variables first
-    await prisma.template_variables.deleteMany({
-      where: { template_id: id },
+    // Delete the template
+    await prisma.prompt_templates.delete({
+      where: { id },
     });
 
-    await prisma.prompt_templates.delete({ where: { id } });
-    res.json({ success: true });
+    res.json({ message: 'Template deleted successfully' });
   } catch (error) {
-    console.error('Delete prompt template error:', error);
-    res.status(400).json({ error: 'Failed to delete template' });
-  }
-}
-
-export async function getVariableTypes(_req: Request, res: Response) {
-  try {
-    const types = await prisma.variable_types.findMany({
-      orderBy: { name: 'asc' },
-    });
-    res.json(types);
-  } catch (error) {
-    console.error('Get variable types error:', error);
-    res.status(500).json({ error: 'Failed to fetch variable types' });
-  }
-}
-
-export async function getVariableOptions(_req: Request, res: Response) {
-  try {
-    const options = await prisma.variable_options.findMany({
-      orderBy: [
-        { variable_type_id: 'asc' },
-        { sort_order: 'asc' },
-      ],
-    });
-    res.json(options);
-  } catch (error) {
-    console.error('Get variable options error:', error);
-    res.status(500).json({ error: 'Failed to fetch variable options' });
+    console.error('Error deleting template:', error);
+    res.status(500).json({ error: 'Failed to delete template' });
   }
 }
