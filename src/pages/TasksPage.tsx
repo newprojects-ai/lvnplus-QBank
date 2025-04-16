@@ -127,8 +127,14 @@ export function TasksPage() {
   // Query for subjects
   const { data: subjects } = useQuery({
     queryKey: ['subjects'],
+    enabled: true,
     queryFn: async () => {
-      const response = await fetch('/api/master-data/subjects');
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/master-data/subjects', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch subjects');
       return response.json();
     },
@@ -295,21 +301,30 @@ export function TasksPage() {
   }, []);
 
   const renderVariableInputs = () => {
-    if (!selectedTemplateDetails) return null;
+    if (!selectedTemplate || !selectedTemplateDetails) {
+      return (
+        <div className="text-gray-500 text-sm">
+          Please select a template to configure variables
+        </div>
+      );
+    }
 
     const variables = selectedTemplateDetails.variables || [];
+    if (variables.length === 0) {
+      return (
+        <div className="text-gray-500 text-sm">
+          No configurable variables found for this template
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-4">
-        {variables
-          .filter((variable: TemplateVariable) => 
-            variable.variable_type_id === 'number' || 
-            variable.variable_type_id === 'difficulty_level'
-          )
-          .map((variable: TemplateVariable) => (
+        {variables.map((variable: TemplateVariable) => (
             <div key={variable.name} className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 {variable.display_name}
+                {variable.is_required && <span className="text-red-500 ml-1">*</span>}
               </label>
               {variable.variable_type_id === 'number' ? (
                 <input
@@ -319,6 +334,7 @@ export function TasksPage() {
                   className="w-full px-3 py-2 border rounded-lg"
                   min="1"
                   required={variable.is_required}
+                  placeholder={variable.description || `Enter ${variable.display_name.toLowerCase()}`}
                 />
               ) : variable.variable_type_id === 'difficulty_level' ? (
                 <select
@@ -334,7 +350,33 @@ export function TasksPage() {
                     </option>
                   ))}
                 </select>
+              ) : variable.variable_type_id === 'text' ? (
+                <input
+                  type="text"
+                  value={formData.variable_values[variable.name] || variable.default_value || ''}
+                  onChange={(e) => handleVariableChange(variable.name, e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  required={variable.is_required}
+                  placeholder={variable.description || `Enter ${variable.display_name.toLowerCase()}`}
+                />
+              ) : variable.variable_type_id === 'select' ? (
+                <select
+                  value={formData.variable_values[variable.name] || variable.default_value || ''}
+                  onChange={(e) => handleVariableChange(variable.name, e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg bg-white"
+                  required={variable.is_required}
+                >
+                  <option value="">Select {variable.display_name.toLowerCase()}</option>
+                  {Array.isArray(variable.options) && variable.options.map((option: string) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
               ) : null}
+              {variable.description && (
+                <p className="text-sm text-gray-500">{variable.description}</p>
+              )}
             </div>
           ))}
       </div>
