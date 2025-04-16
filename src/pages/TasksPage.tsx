@@ -2,8 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { format } from 'date-fns';
 import type { Template, TemplateVariable, TaskFormData, TaskPreviewData } from '../types/templates';
+
+interface FormData {
+  template_id: string;
+  variable_values: {
+    [key: string]: any;
+  };
+}
 
 interface Subject {
   subject_id: number;
@@ -104,9 +110,50 @@ export function TasksPage() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [selectedTemplateData, setSelectedTemplateData] = useState<Template | null>(null);
-  const [selectedSubject, setSelectedSubject] = useState<string>('');
+  const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
   const [selectedTopics, setSelectedTopics] = useState<Set<number>>(new Set());
   const [selectedSubtopics, setSelectedSubtopics] = useState<Set<number>>(new Set());
+
+  // Query for templates
+  const { data: templates } = useQuery({
+    queryKey: ['templates'],
+    queryFn: async () => {
+      const response = await fetch('/api/prompt-templates');
+      if (!response.ok) throw new Error('Failed to fetch templates');
+      return response.json();
+    },
+  });
+
+  // Query for subjects
+  const { data: subjects } = useQuery({
+    queryKey: ['subjects'],
+    queryFn: async () => {
+      const response = await fetch('/api/master-data/subjects');
+      if (!response.ok) throw new Error('Failed to fetch subjects');
+      return response.json();
+    },
+  });
+
+  // Query for topics
+  const { data: topics = [] } = useQuery({
+    queryKey: ['topics', selectedSubject],
+    enabled: !!selectedSubject,
+    queryFn: async () => {
+      const response = await fetch(`/api/master-data/topics/${selectedSubject}`);
+      if (!response.ok) throw new Error('Failed to fetch topics');
+      return response.json();
+    },
+  });
+
+  // Query for subtopics
+  const { data: subtopics = [] } = useQuery({
+    queryKey: ['subtopics'],
+    queryFn: async () => {
+      const response = await fetch('/api/master-data/subtopics');
+      if (!response.ok) throw new Error('Failed to fetch subtopics');
+      return response.json();
+    },
+  });
   const [selectedDifficultyDistribution, setSelectedDifficultyDistribution] = useState<string>('balanced');
   const [customDistribution, setCustomDistribution] = useState<Record<string, number>>({
     '0': 16,
@@ -169,6 +216,11 @@ export function TasksPage() {
   // Update form data when template is selected
   useEffect(() => {
     if (selectedTemplate && selectedTemplateData) {
+      const template = templates?.find(t => t.id === selectedTemplate);
+      if (template) {
+        setSelectedTemplateData(template);
+      }
+
       setFormData(prev => ({
         ...prev,
         template_id: selectedTemplate,
@@ -182,6 +234,20 @@ export function TasksPage() {
     }
   }, [selectedTemplate, selectedTemplateData]);
 
+  // Handle form submission
+  const handleSubmit = async () => {
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (!response.ok) throw new Error('Failed to create task');
+      toast.success('Task created successfully');
+    } catch (error) {
+      toast.error('Failed to create task');
+    }
+  };
   // Update prompt preview
   useEffect(() => {
     if (!selectedTemplateData) return;
@@ -405,7 +471,7 @@ export function TasksPage() {
           <h2 className="text-lg font-medium text-gray-900 mb-4">Select Subject</h2>
           <select
             value={selectedSubject}
-            onChange={(e) => setSelectedSubject(e.target.value)}
+            onChange={(e) => setSelectedSubject(parseInt(e.target.value))}
             className="w-full px-3 py-2 border rounded-lg bg-white"
           >
             <option value="">Select a subject</option>
@@ -459,7 +525,6 @@ export function TasksPage() {
           </button>
         </div>
       </div>
-      {renderTaskStatus()}
     </div>
   );
 }
