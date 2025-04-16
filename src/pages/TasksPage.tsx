@@ -146,19 +146,38 @@ export function TasksPage() {
   });
 
   // Query for subtopics
-  const { data: allSubtopics = [] } = useQuery({
-    queryKey: ['subtopics', selectedTopics],
+  const { data: subtopics = [] } = useQuery({
+    queryKey: ['subtopics', Array.from(selectedTopics)],
+    enabled: selectedTopics.size > 0,
     queryFn: async () => {
-      const response = await fetch('/api/master-data/subtopics');
+      const responses = await Promise.all(
+        Array.from(selectedTopics).map(topicId =>
+          fetch(`/api/master-data/subtopics/${topicId}`)
+        )
+      );
+      
+      const results = await Promise.all(
+        responses.map(response => {
+          if (!response.ok) throw new Error('Failed to fetch subtopics');
+          return response.json();
+        })
+      );
+      
+      return results.flat();
+    },
+  });
+
+  // Query for template details when selected
+  const { data: selectedTemplateDetails } = useQuery({
+    queryKey: ['template-details', selectedTemplate],
+    enabled: !!selectedTemplate,
+    queryFn: async () => {
+      const response = await fetch(`/api/prompt-templates/${selectedTemplate}`);
       if (!response.ok) throw new Error('Failed to fetch subtopics');
       return response.json();
     },
   });
 
-  // Filter subtopics based on selected topics
-  const subtopics = allSubtopics.filter((subtopic: Subtopic) => 
-    Array.from(selectedTopics).includes(subtopic.topic_id)
-  );
   const [selectedDifficultyDistribution, setSelectedDifficultyDistribution] = useState<string>('balanced');
   const [customDistribution, setCustomDistribution] = useState<Record<string, number>>({
     '0': 16,
@@ -212,12 +231,8 @@ export function TasksPage() {
 
   // Update form data when template is selected
   useEffect(() => {
-    if (selectedTemplate && selectedTemplateData) {
-      const template = templates?.find(t => t.id === selectedTemplate);
-      if (template) {
-        setSelectedTemplateData(template);
-      }
-
+    if (selectedTemplate && selectedTemplateDetails) {
+      setSelectedTemplateData(selectedTemplateDetails);
       setFormData(prev => ({
         ...prev,
         template_id: selectedTemplate,
@@ -229,7 +244,7 @@ export function TasksPage() {
         }
       }));
     }
-  }, [selectedTemplate, selectedTemplateData]);
+  }, [selectedTemplate, selectedTemplateDetails]);
 
   // Handle form submission
   const handleSubmit = async () => {
@@ -280,14 +295,13 @@ export function TasksPage() {
   }, []);
 
   const renderVariableInputs = () => {
-    if (!selectedTemplate) return null;
+    if (!selectedTemplateDetails) return null;
 
-    const template = templates?.find((t: Template) => t.id === selectedTemplate);
-    if (!template) return null;
+    const variables = selectedTemplateDetails.variables || [];
 
     return (
       <div className="space-y-4">
-        {template.variables
+        {variables
           .filter((variable: TemplateVariable) => 
             variable.variable_type_id === 'number' || 
             variable.variable_type_id === 'difficulty_level'
@@ -330,7 +344,7 @@ export function TasksPage() {
   // Render topic and subtopic selection
   const renderTopicSubtopicSelection = () => {
     return (
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-6 mt-4">
         <div className="space-y-4">
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">Topics</h3>
@@ -344,7 +358,14 @@ export function TasksPage() {
                 return (
                   <button
                     key={topic.topic_id}
-                    onClick={() => setViewingTopicId(topic.topic_id)}
+                    onClick={() => {
+                      setViewingTopicId(topic.topic_id);
+                      setSelectedTopics(prev => {
+                        const newSet = new Set(prev);
+                        newSet.add(topic.topic_id);
+                        return newSet;
+                      });
+                    }}
                     className={`p-3 text-left rounded-lg flex justify-between items-center ${
                       isFullySelected
                         ? 'bg-green-100 text-green-800'
@@ -379,7 +400,9 @@ export function TasksPage() {
             <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
               {subtopics
                 .filter((subtopic) => !viewingTopicId || subtopic.topic_id === viewingTopicId)
-                .map((subtopic) => (
+                .map((subtopic) => {
+                  const isSelected = selectedSubtopics.has(subtopic.subtopic_id);
+                  return (
                   <button
                     key={subtopic.subtopic_id}
                     onClick={() => {
@@ -394,14 +417,14 @@ export function TasksPage() {
                       });
                     }}
                     className={`p-3 text-left rounded-lg ${
-                      selectedSubtopics.has(subtopic.subtopic_id)
+                      isSelected
                         ? 'bg-green-100 text-green-800'
                         : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                     }`}
                   >
                     {subtopic.subtopic_name}
                   </button>
-                ))}
+                )})}
             </div>
           </div>
         </div>
