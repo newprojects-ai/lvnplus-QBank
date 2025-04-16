@@ -378,7 +378,87 @@ export function TasksPage() {
 
   return (
     <div className="p-8">
-      {/* Rest of the component JSX */}
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Create Task</h1>
+      </div>
+
+      <div className="grid gap-6">
+        {/* Template Selection */}
+        <div className="bg-white rounded-lg p-6 border">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Select Template</h2>
+          <select
+            value={selectedTemplate}
+            onChange={(e) => setSelectedTemplate(e.target.value)}
+            className="w-full px-3 py-2 border rounded-lg bg-white"
+          >
+            <option value="">Select a template</option>
+            {templates?.map((template: Template) => (
+              <option key={template.id} value={template.id}>
+                {template.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Subject Selection */}
+        <div className="bg-white rounded-lg p-6 border">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Select Subject</h2>
+          <select
+            value={selectedSubject}
+            onChange={(e) => setSelectedSubject(e.target.value)}
+            className="w-full px-3 py-2 border rounded-lg bg-white"
+          >
+            <option value="">Select a subject</option>
+            {subjects?.map((subject) => (
+              <option key={subject.subject_id} value={subject.subject_id}>
+                {subject.subject_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Topics and Subtopics Selection */}
+        {selectedSubject && (
+          <div className="bg-white rounded-lg p-6 border">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Select Topics and Subtopics</h2>
+            {renderTopicSubtopicSelection()}
+          </div>
+        )}
+
+        {/* Variable Inputs */}
+        {selectedTemplate && (
+          <div className="bg-white rounded-lg p-6 border">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Configure Variables</h2>
+            {renderVariableInputs()}
+          </div>
+        )}
+
+        {/* Prompt Preview */}
+        {selectedTemplate && (
+          <div className="bg-white rounded-lg p-6 border">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Prompt Preview</h2>
+            <pre className="bg-gray-50 p-4 rounded-lg whitespace-pre-wrap text-sm">
+              {promptPreview}
+            </pre>
+          </div>
+        )}
+
+        {/* Task Status */}
+        <div className="bg-white rounded-lg p-6 border">
+          {renderTaskStatus()}
+        </div>
+
+        {/* Create Button */}
+        <div className="flex justify-end">
+          <button
+            onClick={handleSubmit}
+            disabled={!areRequiredVariablesFilled()}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+          >
+            Create Task
+          </button>
+        </div>
+      </div>
       {renderTaskStatus()}
     </div>
   );
