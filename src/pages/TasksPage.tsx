@@ -146,14 +146,19 @@ export function TasksPage() {
   });
 
   // Query for subtopics
-  const { data: subtopics = [] } = useQuery({
-    queryKey: ['subtopics'],
+  const { data: allSubtopics = [] } = useQuery({
+    queryKey: ['subtopics', selectedTopics],
     queryFn: async () => {
       const response = await fetch('/api/master-data/subtopics');
       if (!response.ok) throw new Error('Failed to fetch subtopics');
       return response.json();
     },
   });
+
+  // Filter subtopics based on selected topics
+  const subtopics = allSubtopics.filter((subtopic: Subtopic) => 
+    Array.from(selectedTopics).includes(subtopic.topic_id)
+  );
   const [selectedDifficultyDistribution, setSelectedDifficultyDistribution] = useState<string>('balanced');
   const [customDistribution, setCustomDistribution] = useState<Record<string, number>>({
     '0': 16,
@@ -168,11 +173,6 @@ export function TasksPage() {
   const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null);
   const [viewingTopicId, setViewingTopicId] = useState<number | null>(null);
   const [isLoadingTemplateData, setIsLoadingTemplateData] = useState(false);
-
-  // State for data
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
   const [formData, setFormData] = useState<FormData>({
     template_id: '',
     variable_values: {},
@@ -180,9 +180,6 @@ export function TasksPage() {
   const [promptPreview, setPromptPreview] = useState<string>('');
 
   // State for loading indicators
-  const [isLoadingSubjects, setIsLoadingSubjects] = useState<boolean>(false);
-  const [isLoadingTopics, setIsLoadingTopics] = useState<boolean>(false);
-  const [isLoadingSubtopics, setIsLoadingSubtopics] = useState<boolean>(false);
 
   // State for authentication
   const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
