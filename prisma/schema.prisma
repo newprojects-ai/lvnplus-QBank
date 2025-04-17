@@ -57,30 +57,50 @@ model difficulty_levels {
 }
 
 model templates {
-  id                 String               @id @default(uuid())
-  name               String               @db.VarChar(255)
-  description        String?              @db.Text
-  example_question   String?              @db.Text
-  created_at         DateTime             @default(now())
-  created_by         String               @db.VarChar(255)
-  difficulty_value   Int                  @map("difficulty_value") @db.TinyInt
-  level_id           Int
-  subject_id         Int
-  subtopic_id        Int
-  topic_id           Int
-  prompt_template_id String?
-  batches            generation_batches[]
-  difficulty_level   difficulty_levels    @relation(fields: [level_id], references: [level_id])
-  prompt_template    prompt_templates?    @relation(fields: [prompt_template_id], references: [id])
-  subject            subjects             @relation(fields: [subject_id], references: [subject_id])
-  subtopic           subtopics            @relation(fields: [subtopic_id], references: [subtopic_id])
-  topic              topics               @relation(fields: [topic_id], references: [topic_id])
+  id          String             @id @db.VarChar(36)
+  name        String             @db.VarChar(255)
+  description String?            @db.Text
+  category    String?            @db.VarChar(100)
+  tags        String?            @db.Text
+  created_at  DateTime           @default(now()) @db.Timestamp(0)
+  created_by  String             @db.VarChar(255)
+  updated_at  DateTime           @default(now()) @db.Timestamp(0)
+  is_active   Boolean            @default(true)
+  versions    template_versions[]
 
-  @@index([subject_id])
-  @@index([topic_id])
-  @@index([subtopic_id])
-  @@index([level_id])
-  @@index([prompt_template_id])
+  @@index([category])
+}
+
+model template_versions {
+  id          String              @id @db.VarChar(36)
+  template_id String              @db.VarChar(36)
+  version     Int
+  content     String              @db.Text
+  created_at  DateTime            @default(now()) @db.Timestamp(0)
+  created_by  String              @db.VarChar(255)
+  template    templates           @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  variables   template_variables[]
+
+  @@unique([template_id, version])
+  @@index([template_id])
+}
+
+model template_variables {
+  id                 String           @id @db.VarChar(36)
+  template_version_id String           @db.VarChar(36)
+  name               String           @db.VarChar(100)
+  display_name       String           @db.VarChar(255)
+  type               String           @db.VarChar(50)
+  description        String?          @db.Text
+  default_value      String?          @db.Text
+  validation_rules   String?          @db.Text
+  category          String?          @db.VarChar(100)
+  is_required       Boolean          @default(true)
+  sort_order        Int              @default(0)
+  created_at        DateTime         @default(now()) @db.Timestamp(0)
+  version           template_versions @relation(fields: [template_version_id], references: [id], onDelete: Cascade)
+
+  @@index([template_version_id])
 }
 
 model prompt_templates {

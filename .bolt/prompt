@@ -6,3 +6,4 @@ Use icons from lucide-react for logos.
 
 Use stock photos from unsplash where appropriate, only valid URLs you know exist. Do not download the images, only link to them in image tags.
 
+Also take into consideration that the DB is MariaDB and NOT SUPABASE. Please don't waste any time or tokens coming up with SUPABASE ideas or implementations. All designs should be for a underlying MariaDB database
