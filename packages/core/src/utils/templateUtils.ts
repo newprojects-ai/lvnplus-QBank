@@ -59,11 +59,9 @@ export function generatePreview(template: Template, variables: Record<string, an
     
     if (value === undefined || value === '') {
       missingVariables.push(variable.name);
+      renderedContent = renderedContent.replaceAll(placeholder, '');
     } else {
-      renderedContent = renderedContent.replace(
-        new RegExp(placeholder, 'g'),
-        String(value)
-      );
+      renderedContent = renderedContent.replaceAll(placeholder, value);
     }
   });
 
@@ -83,19 +81,18 @@ export function createTemplateVersion(
   variables: TemplateVariable[],
   userId: string
 ): Template {
-  const newVersion: TemplateVersion = {
-    id: crypto.randomUUID(),
-    version: (template.versions?.length || 0) + 1,
+  const newVersion = {
+    id: `${template.id}-v${template.versions.length + 1}`,
+    version: template.versions.length + 1,
     content,
     variables,
     createdAt: new Date().toISOString(),
-    createdBy: userId
+    createdBy: userId,
   };
 
   return {
     ...template,
     currentVersion: newVersion,
-    versions: [...(template.versions || []), newVersion],
-    updated_at: new Date().toISOString()
+    versions: [...template.versions, newVersion],
   };
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import type { Template, TemplateVariable, TaskFormData, TaskPreviewData } from '../types/templates';
+import type { Template, TemplateVariable, TaskFormData, TaskPreviewData } from '@lvnplus/core';
 
 interface FormData {
   template_id: string;

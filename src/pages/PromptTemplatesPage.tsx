@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import { Template } from '../types/templates';
+import { Template } from '@lvnplus/core';
 import { TemplateList } from '../components/templates/TemplateList';
 import { TemplateEditor } from '../components/templates/TemplateEditor';
 import { TemplatePreview } from '../components/templates/TemplatePreview';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Template, TemplatePreview as ITemplatePreview } from '../../types/templates';
-import { generatePreview } from '../../utils/templateUtils';
+import { generatePreview } from '@lvnplus/core';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 
 interface TemplatePreviewProps {

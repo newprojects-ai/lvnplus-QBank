@@ -39,15 +39,10 @@ export interface TemplateVersion {
 export interface Template {
   id: string;
   name: string;
-  description?: string;
-  category?: string;
-  tags?: string[];
   currentVersion: TemplateVersion;
   versions: TemplateVersion[];
-  created_at: string;
-  created_by: string;
-  updated_at: string;
-  isActive: boolean;
+  createdAt: string;
+  createdBy: string;
 }
 
 export interface TemplatePreview {

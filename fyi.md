@@ -327,6 +327,28 @@ QBank is a question bank generation system that uses AI to create, manage, and e
 **Reason:** To debug the "Not Ready" status and the unexpected console error during task validation. The previous logging was insufficient to pinpoint the exact cause.
 **How:** Used `edit_file` tool to add `console.log` statements for the full variable object and improved the check for missing/empty values.
 
+### April 17, 2025 12:28pm BST
+
+### Monorepo Migration - Phase 1 (Scaffold)
+
+**What:**
+- Created new monorepo folder structure: `packages/core`, `packages/ui`, `packages/api`, `packages/features`, `apps/web` and their respective `src` subfolders.
+- Added/initialized package.json and tsconfig.json files for each package and app, using the monorepo migration guide as reference.
+- Updated root package.json to use Turborepo workspaces, removed old scripts/dependencies.
+- Added root turbo.json and replaced root tsconfig.json with base config for all packages.
+
+**Why:**
+- To split the monorepo into manageable packages for better modularity, maintainability, and reduced token consumption in BOLT.
+- To prepare for migration of types, utilities, UI components, API clients/hooks, and feature logic into new packages.
+
+**How:**
+- Used PowerShell and file operations to scaffold the directory structure and configuration files.
+- Carefully followed the provided migration guide for all config templates.
+
+**Next:**
+- Begin Phase 2: Migrating core types and utilities from `src/types` and `src/utils` to `packages/core`.
+- Log all further actions and rationale here.
+
 ## Current Features
 
 ### Authentication
@@ -469,4 +491,4 @@ QBank is a question bank generation system that uses AI to create, manage, and e
 - None currently reported
 
 ## Last Updated
-April 8, 2025
+April 17, 2025

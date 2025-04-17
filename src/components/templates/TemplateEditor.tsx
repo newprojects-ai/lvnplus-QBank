@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Template, TemplateVariable, TemplateValidationResult } from '../../types/templates';
-import { validateTemplate, generatePreview } from '../../utils/templateUtils';
+import { validateTemplate, generatePreview } from '@lvnplus/core';
 import { Variable, Pencil, Plus, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface TemplateEditorProps {
