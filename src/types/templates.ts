@@ -1,44 +1,66 @@
+export type VariableType = 
+  | 'text' 
+  | 'number' 
+  | 'select' 
+  | 'multiselect'
+  | 'boolean'
+  | 'date';
+
+export interface VariableValidation {
+  required?: boolean;
+  min?: number;
+  max?: number;
+  pattern?: string;
+  options?: string[];
+}
+
 export interface TemplateVariable {
   id: string;
   name: string;
-  display_name: string;
+  type: VariableType;
+  displayName: string;
   description?: string;
-  variable_type_id: string;
+  defaultValue?: string;
+  validation?: VariableValidation;
+  category?: string;
   is_required: boolean;
-  default_value?: string;
-  validation_rules?: string;
-  options?: string[];
   sort_order: number;
+}
+
+export interface TemplateVersion {
+  id: string;
+  version: number;
+  content: string;
+  variables: TemplateVariable[];
+  createdAt: string;
+  createdBy: string;
 }
 
 export interface Template {
   id: string;
   name: string;
   description?: string;
-  template_text: string;
-  variables: TemplateVariable[];
+  category?: string;
+  tags?: string[];
+  currentVersion: TemplateVersion;
+  versions: TemplateVersion[];
   created_at: string;
   created_by: string;
+  updated_at: string;
+  isActive: boolean;
 }
 
-export interface TaskFormData {
-  template_id: string;
-  variable_values: {
-    total_questions: number;
-    difficulty_distribution: {
-      [key: string]: number;
-    };
-    [key: string]: any;
-  };
-}
-
-export interface TaskPreviewData {
-  template?: Template;
-  variables: {
-    [key: string]: any;
-  };
+export interface TemplatePreview {
+  template: Template;
+  variables: Record<string, any>;
+  renderedContent: string;
+  missingVariables: string[];
   isValid: boolean;
+}
+
+export interface TemplateValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
   missingVariables: string[];
 }
-
-export type VariableChangeHandler = (name: string, value: any) => void;
